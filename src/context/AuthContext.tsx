@@ -25,7 +25,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (accessToken || refreshToken) {
         try {
           const userData = await api.getUser();
-          setUser(userData);
+
+setUser({
+  ...userData,
+  profile: {
+    ...userData.profile,
+    assignedGroup: userData.profile?.assignedGroup
+  }
+});
         } catch (error) {
           console.error("Failed to restore session:", error);
           localStorage.removeItem('access_token');

@@ -111,6 +111,7 @@ const AdminDashboard = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <button
+            arial-label="Back to Dashboard"
             onClick={() => navigate("/dashboard")}
             className="inline-flex items-center text-yellow-400 hover:text-yellow-300 transition"
           >
@@ -121,6 +122,7 @@ const AdminDashboard = () => {
             Super Admin Dashboard
           </h1>
           <button
+            arial-label = "Logout"
             onClick={logout}
             className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
           >
@@ -132,6 +134,7 @@ const AdminDashboard = () => {
         <div className="flex space-x-4 mb-6 border-b border-gray-700">
           {["users", "groups", "questions", "events"].map((tab) => (
             <button
+              aria-label="selection"
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 capitalize font-semibold transition ${
@@ -214,6 +217,7 @@ const AdminDashboard = () => {
                         </td>
                         <td>
                           <button
+                            aria-label="Delete user"
                             onClick={() => handleDeleteUser(user.id)}
                             className="text-red-400 hover:text-red-300 mr-2"
                             title="Delete user"
@@ -222,6 +226,7 @@ const AdminDashboard = () => {
                           </button>
                           {user.role !== "service_admin" && (
                             <button
+                            aria-label="click"
                               onClick={() => {
                                 // Show a modal to select group
                                 Swal.fire({
@@ -288,6 +293,7 @@ const AdminDashboard = () => {
                       </p>
                     </div>
                     <button
+                    aria-label="select admin"
                       onClick={() => {
                         // Show user list to assign new admin
                         Swal.fire({
@@ -340,6 +346,7 @@ const AdminDashboard = () => {
                         </span>
                       </div>
                       <button
+                        aria-label="Delete question"
                         onClick={() => handleDeleteQuestion(q.question_id)}
                         className="text-red-400 hover:text-red-300"
                       >
@@ -418,6 +425,7 @@ const AdminDashboard = () => {
                   className="w-full px-4 py-2 bg-[#1B3067] border border-gray-600 rounded text-white"
                 />
                 <button
+                  aria-label="Post event"
                   type="submit"
                   className="bg-yellow-400 text-[#1B3067] px-6 py-2 rounded font-semibold hover:bg-yellow-300"
                 >
