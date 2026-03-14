@@ -83,55 +83,55 @@ const DashboardEvents = () => {
             const eventDate = event.start_date ? new Date(event.start_date) : null;
             const isPast = eventDate && eventDate < new Date();
             return (
-              <Card key={event.id} hoverable className={`overflow-hidden ${isPast ? "opacity-75" : ""}`}>
+              <Card key={event.id} hoverable className={`flex flex-col h-full overflow-hidden ${isPast ? "opacity-75" : ""}`}>
                 {/* Event Image */}
                 {event.photo && (
                   <img
                     src={event.photo}
                     alt={event.title}
-                    className="w-full h-40 object-cover rounded-t-xl -mt-4 -mx-4 mb-4"
+                    className="w-full h-36 object-cover rounded-t-xl -mt-4 -mx-4 mb-4"
                     style={{ width: 'calc(100% + 2rem)' }}
                   />
                 )}
-                <div className="flex gap-4">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex h-16 w-16 flex-shrink-0 flex-col items-center justify-center rounded-xl bg-primary/10">
-                      <span className="text-xs font-bold uppercase text-primary">{eventDate ? eventDate.toLocaleDateString(undefined, { month: "short" }) : t("tbd")}</span>
-                      <span className="text-lg font-medium leading-none text-primary">{eventDate ? eventDate.getDate() : ""}</span>
-                    </div>
+                <div className="flex flex-col flex-1">
+                  <div className="flex w-full justify-between items-start mb-1.5">
+                    <h3 className="text-sm font-semibold text-[#253D7F] line-clamp-1">{event.title}</h3>
+                    {isPast && <Badge variant="default" size="sm" className="ml-2 flex-shrink-0 bg-slate-100 text-slate-500 font-medium border-0 hover:bg-slate-200">{t("completed")}</Badge>}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-col gap-1 items-start justify-between">
-                      <div className="flex w-full justify-between items-start">
-                        <h3 className="text-sm font-medium text-foreground line-clamp-1">{event.title}</h3>
-                        {isPast && <Badge variant="default" size="sm" className="ml-2">{t("event_completed")}</Badge>}
+                  <div className="mb-3">
+                    {event.service_group_name ? (
+                      <div className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                        {event.service_group_name} {t("service_group")}
                       </div>
-                      {event.service_group_name ? (
-                        <div className="inline-flex items-center rounded-md bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent">
-                          {event.service_group_name} {t("service_group")}
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                          {t("general")}
-                        </div>
-                      )}
-                    </div>
-                    {event.description && (
-                      <div className="mt-2 flex gap-2">
-                        <FiMessageCircle className="h-4 w-4 flex-shrink-0 text-muted-foreground mt-0.5" />
-                        <p className="text-sm italic text-muted-foreground line-clamp-2">{event.description}</p>
+                    ) : (
+                      <div className="inline-flex items-center rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                        {t("general")}
                       </div>
                     )}
-                    <div className="mt-3 space-y-1">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <FiClock className="h-4 w-4" />
+                  </div>
+                  {event.description && (
+                    <div className="mb-4 flex gap-1.5">
+                      <FiMessageCircle className="h-3.5 w-3.5 flex-shrink-0 text-slate-400 mt-0.5" />
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{event.description}</p>
+                    </div>
+                  )}
+
+                  <div className="mt-auto flex gap-3 pt-2 items-end">
+                    <div className="flex h-11 w-11 flex-shrink-0 flex-col items-center justify-center rounded-lg bg-slate-100 pb-0.5">
+                      <span className="text-[9px] font-bold uppercase text-[#253D7F]">{eventDate ? eventDate.toLocaleDateString(undefined, { month: "short" }) : t("tbd")}</span>
+                      <span className="text-sm font-bold leading-none text-[#253D7F] mt-0.5">{eventDate ? eventDate.getDate() : ""}</span>
+                    </div>
+                    
+                    <div className="space-y-1.5 min-w-0 flex-1 pb-0.5">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <FiClock className="h-3.5 w-3.5 text-slate-400" />
                         <span>{eventDate ? eventDate.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : t("location_tbd")}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <FiMapPin className="h-4 w-4 flex-shrink-0" />
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <FiMapPin className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
                         <span className="truncate">
                           {event.place_url ? (
-                            <a href={event.place_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                            <a href={event.place_url} target="_blank" rel="noopener noreferrer" className="hover:text-[#253D7F] transition-colors hover:underline">
                               {event.place_name || t("view_location")}
                             </a>
                           ) : (

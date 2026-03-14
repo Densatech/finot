@@ -7,6 +7,7 @@ import {
   UserGroupIcon,
   ArrowRightIcon,
   ArrowRightOnRectangleIcon,
+  ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 
 const fadeInUp = {
@@ -76,19 +77,29 @@ const AnonymousIntro = () => {
   ];
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-16 px-4">
-      <div className="max-w-5xl mx-auto text-center">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-8">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#253D7F] transition-colors"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            {t("back_to_home", "Back to Home")}
+          </Link>
+        </div>
+        
         {/* Hero / Intro Section */}
-        <motion.div initial="hidden" animate="visible" variants={fadeInUp}>
-          <h1 className="text-4xl md:text-5xl font-bold text-[#253D7F] mb-4">
+        <motion.div initial="hidden" animate="visible" variants={fadeInUp} className="text-center">
+          <h1 className="text-3xl md:text-4xl font-bold text-[#253D7F] mb-4">
             {t("emahoy_title")}
           </h1>
-          <p className="text-[#253D7F] text-lg md:text-xl mb-12">
+          <p className="text-[#253D7F] text-base mb-12 max-w-2xl mx-auto">
             {t("emahoy_subtitle")}
           </p>
         </motion.div>
 
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-12">
           {featureCards.map((card, index) => (
             <motion.div
               key={index}
@@ -96,12 +107,12 @@ const AnonymousIntro = () => {
               initial="hidden"
               animate="visible"
               variants={fadeInUp}
-              className="bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center text-center transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl group"
+              className="bg-white border border-slate-100 rounded-2xl p-6 flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-[#EDCF07] hover:bg-[#EDCF07]/10 group"
             >
-              <div className="w-16 h-16 rounded-full bg-[#EDCF07] flex items-center justify-center mb-4 transition-colors duration-300 group-hover:bg-[#253D7F]">
-                <card.icon className="h-8 w-8 text-[#253D7F] group-hover:text-[#EDCF07]" />
+              <div className="w-14 h-14 rounded-full bg-[#EDCF07] flex items-center justify-center mb-4 transition-colors duration-300 group-hover:bg-[#253D7F]">
+                <card.icon className="h-7 w-7 text-[#253D7F] group-hover:text-[#EDCF07]" />
               </div>
-              <h3 className="text-xl font-semibold text-[#253D7F] group-hover:text-[#EDCF07] mb-2">
+              <h3 className="text-lg font-semibold text-[#253D7F] group-hover:text-[#EDCF07] mb-2">
                 {card.title}
               </h3>
               <p className="text-sm text-slate-600 group-hover:text-[#253D7F]">
@@ -115,20 +126,20 @@ const AnonymousIntro = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0, transition: { delay: 0.8 } }}
-          className="mb-16"
+          className="mb-16 text-center"
         >
           <Link
             to="/anonymous/questions"
-            className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-[#253D7F] text-[#EDCF07] font-semibold text-lg hover:bg-[#1f3160] transition-colors duration-300"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#253D7F] text-[#EDCF07] font-semibold text-sm hover:bg-[#1f3160] transition-colors duration-300"
           >
             {t("join_conversation")}
-            <ArrowRightIcon className="h-5 w-5" />
+            <ArrowRightIcon className="h-4 w-4" />
           </Link>
         </motion.div>
 
         {/* How It Works Section */}
-        <section className="mt-16">
-          <h2 className="text-3xl font-semibold text-[#253D7F] text-center mb-12">
+        <section className="mt-16 text-center">
+          <h2 className="text-2xl font-semibold text-[#253D7F] mb-10">
             {t("how_it_works")}
           </h2>
 
@@ -141,18 +152,18 @@ const AnonymousIntro = () => {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.3 }}
                 variants={stepFadeIn}
-                className="bg-white border-2 rounded-2xl p-6 flex flex-col items-center text-center shadow-md transition-transform duration-300 hover:-translate-y-2 hover:shadow-2xl hover:border-[#EDCF07]"
+                className="bg-white border border-slate-100 rounded-2xl p-6 flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-[#EDCF07] hover:bg-[#EDCF07]/10 group"
               >
                 <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+                  className="w-12 h-12 rounded-full flex items-center justify-center mb-4 transition-colors"
                   style={{ backgroundColor: step.color }}
                 >
-                  <step.icon className="h-7 w-7 text-white" />
+                  <step.icon className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="font-semibold text-xl text-[#253D7F] mb-2">
+                <h3 className="font-semibold text-lg text-[#253D7F] group-hover:text-[#EDCF07] mb-2 transition-colors">
                   {step.title}
                 </h3>
-                <p className="text-sm text-slate-600">{step.description}</p>
+                <p className="text-sm text-slate-600 group-hover:text-[#253D7F] transition-colors">{step.description}</p>
               </motion.div>
             ))}
           </div>

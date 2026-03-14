@@ -94,10 +94,10 @@ const DashboardService = () => {
 
             return (
               <Link key={group.id} to={`/dashboard/service/${group.id}`}>
-                <Card hoverable className="group h-full">
+                <Card hoverable className="group h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-[#EDCF07] hover:shadow-md hover:bg-[#EDCF07]/5">
                   <div className="flex items-start justify-between">
-                    <div className="rounded-xl bg-primary/10 p-3">
-                      <FiBriefcase className="h-6 w-6 text-primary" />
+                    <div className="rounded-xl bg-[#253D7F]/10 p-3 group-hover:bg-[#EDCF07]/20 transition-colors">
+                      <FiBriefcase className="h-6 w-6 text-[#253D7F] group-hover:text-[#EDCF07] transition-colors" />
                     </div>
                     {isSelected && (
                       <Badge variant="success" size="sm">
@@ -109,15 +109,16 @@ const DashboardService = () => {
                   <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
                     {group.description || t("no_description_available")}
                   </p>
+                  <div className="flex-grow"></div>
                   {group.admin_name && (
                     <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
                       <FiUsers className="h-4 w-4" />
                       <span>{t("admin")}: {group.admin_name}</span>
                     </div>
                   )}
-                  <div className="mt-4 flex items-center justify-end text-primary">
-                    <span className="text-sm font-medium">{t("view_details")}</span>
-                    <FiArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  <div className="mt-6 pt-4 flex items-center justify-end text-[#253D7F] group-hover:text-[#EDCF07] transition-colors border-t border-slate-100/50">
+                    <span className="text-sm font-semibold">{t("view_details")}</span>
+                    <FiArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5" />
                   </div>
                 </Card>
               </Link>

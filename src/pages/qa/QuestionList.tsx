@@ -138,7 +138,7 @@ const QuestionList = ({ isDashboard = false }: { isDashboard?: boolean }) => {
           {paginatedQuestions.map((q) => {
             const answers = getApprovedAnswers(q);
             return (
-              <div key={q.id} className="card">
+              <div key={q.id} className="card border border-slate-200 transition-colors hover:border-[#EDCF07]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-medium px-2 py-0.5 rounded-lg bg-accent/10 text-accent-foreground">

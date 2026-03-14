@@ -107,13 +107,13 @@ export const NotificationBell = ({ iconClassName }: { iconClassName?: string }) 
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
-          <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t("notifications")}</h3>
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
+          <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <h3 className="font-semibold text-gray-900">{t("notifications")}</h3>
             {unreadCount > 0 && (
               <button 
                 onClick={markAllAsRead}
-                className="text-xs text-primary hover:text-primary-light font-medium transition-colors"
+                className="text-xs text-slate-500 hover:text-slate-900 font-medium transition-colors"
               >
                 {t("mark_all_read")}
               </button>
@@ -122,11 +122,11 @@ export const NotificationBell = ({ iconClassName }: { iconClassName?: string }) 
           
           <div className="max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
+              <div className="p-6 text-center text-gray-500 text-sm">
                 {t("no_notifications")}
               </div>
             ) : (
-              <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
+              <ul className="divide-y divide-gray-100">
                 {notifications.map((notification) => (
                   <li 
                     key={notification.id} 
@@ -135,20 +135,20 @@ export const NotificationBell = ({ iconClassName }: { iconClassName?: string }) 
                         markAsRead(notification.id);
                       }
                     }}
-                    className={`p-4 transition-colors flex gap-3 cursor-pointer ${!notification.is_read ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}
+                    className={`p-4 transition-colors flex gap-3 cursor-pointer ${!notification.is_read ? 'bg-slate-50' : 'hover:bg-gray-50'}`}
                   >
                     {!notification.is_read && (
-                      <div className="mt-1.5 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
+                      <div className="mt-1.5 h-2 w-2 rounded-full bg-slate-900 flex-shrink-0" />
                     )}
                     <div className="flex-1">
-                      <p className={`text-sm ${!notification.is_read ? 'font-semibold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>
+                      <p className={`text-sm ${!notification.is_read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
                         {notification.title}
                       </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">
                         {notification.message}
                       </p>
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                        <span className="text-xs text-gray-400">
                           {new Date(notification.created_at).toLocaleDateString()}
                         </span>
                         {!notification.is_read && (
@@ -157,7 +157,7 @@ export const NotificationBell = ({ iconClassName }: { iconClassName?: string }) 
                               e.stopPropagation(); // prevent double firing
                               markAsRead(notification.id);
                             }}
-                            className="text-xs text-primary hover:text-primary-light font-medium"
+                            className="text-xs text-slate-500 hover:text-slate-900 font-medium"
                           >
                             {t("mark_read")}
                           </button>
