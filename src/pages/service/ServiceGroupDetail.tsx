@@ -7,20 +7,23 @@ import { api } from "../../lib/api";
 import { ServiceGroup } from "../../types";
 import { Card } from "../../components/ui/Card";
 
-const fadeIn = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
+const fadeIn = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
 
 const getGroupKey = (groupName: string) => {
   const mapping: Record<string, string> = {
-    "ትምህርት ክፍል": "group_teaching_name",
-    "አባላት እና እንክብካቤ ክፍል": "group_membership_name",
-    "ልማት ክፍል": "group_development_name",
-    "መዝሙር ክፍል": "group_choir_name",
-    "ሙያ እና ተራድኦ": "group_professional_name",
-    "ቁዋንቁዋና ልዩ ልዩ ክፍል": "group_language_name",
-    "ሂሳብ ክፍል": "group_finance_name",
-    "ኦዲት ክፍል": "group_audit_name",
-    "ባች እና መርሃግብር": "group_batch_name",
-    "መረጃ እና ክትትል ክፍል": "group_media_name",
+    "á‰µáˆáˆ…áˆ­á‰µ áŠ­ááˆ": "group_teaching_name",
+    "áŠ á‰£áˆ‹á‰µ áŠ¥áŠ“ áŠ¥áŠ•áŠ­á‰¥áŠ«á‰¤ áŠ­ááˆ": "group_membership_name",
+    "áˆáˆ›á‰µ áŠ­ááˆ": "group_development_name",
+    "áˆ˜á‹áˆ™áˆ­ áŠ­ááˆ": "group_choir_name",
+    "áˆ™á‹« áŠ¥áŠ“ á‰°áˆ«á‹µáŠ¦": "group_professional_name",
+    "á‰á‹‹áŠ•á‰á‹‹áŠ“ áˆá‹© áˆá‹© áŠ­ááˆ": "group_language_name",
+    "áˆ‚áˆ³á‰¥ áŠ­ááˆ": "group_finance_name",
+    "áŠ¦á‹²á‰µ áŠ­ááˆ": "group_audit_name",
+    "á‰£á‰½ áŠ¥áŠ“ áˆ˜áˆ­áˆƒáŒá‰¥áˆ­": "group_batch_name",
+    "áˆ˜áˆ¨áŒƒ áŠ¥áŠ“ áŠ­á‰µá‰µáˆ áŠ­ááˆ": "group_media_name",
   };
   return mapping[groupName];
 };
@@ -52,14 +55,20 @@ const ServiceGroupDetail = () => {
 
   useEffect(() => {
     if (!id) return;
-    api.getServiceGroupById(id).then(setGroup).catch((err: any) => setError(err?.message || t("group_not_found"))).finally(() => setLoading(false));
-  }, [id]);
+    api
+      .getServiceGroupById(id)
+      .then(setGroup)
+      .catch((err: any) => setError(err?.message || t("group_not_found")))
+      .finally(() => setLoading(false));
+  }, [id, t]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-muted border-t-primary" />
-        <span className="ml-3 text-sm text-muted-foreground">{t("loading")}...</span>
+        <span className="ml-3 text-sm text-muted-foreground">
+          {t("loading")}...
+        </span>
       </div>
     );
   }
@@ -68,60 +77,59 @@ const ServiceGroupDetail = () => {
     return (
       <div className="text-center py-20">
         <p className="text-destructive mb-4">{error || t("group_not_found")}</p>
-        <Link to="/dashboard/service" className="btn-primary text-sm">{t("back_to_services")}</Link>
+        <Link to="/dashboard/service" className="btn-primary text-sm">
+          {t("back_to_services")}
+        </Link>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Link to="/dashboard/service" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition">
+      <Link
+        to="/dashboard/service"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition"
+      >
         <FiArrowLeft className="h-4 w-4" /> {t("back_to_services")}
       </Link>
 
       <motion.div initial="hidden" animate="visible" variants={fadeIn}>
         <Card className="overflow-hidden p-0">
           <div className="flex flex-col md:flex-row">
-            {/* Image */}
             <div className="md:w-1/3 relative">
               <div className="h-64 md:h-full overflow-hidden">
                 <img
                   src={getGroupImage(group.name)}
                   alt={group.name}
                   className="w-full h-full object-cover"
-                  onError={(e: any) => { e.target.src = "/images/service-groups/group1.jpg"; }}
+                  onError={(e: any) => {
+                    e.target.src = "/images/service-groups/group1.jpg";
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent" />
               </div>
             </div>
 
-            {/* Details */}
             <div className="md:w-2/3 p-6 md:p-8">
               <h1 className="text-2xl font-bold text-foreground mb-4">
                 {getGroupKey(group.name) ? t(getGroupKey(group.name)) : group.name}
               </h1>
-              <p className="text-muted-foreground leading-relaxed">{group.description || t("learn_more_group")}</p>
+              <p className="text-muted-foreground leading-relaxed">
+                {group.description || t("learn_more_group")}
+              </p>
               {group.admin_name && (
-                <p className="text-sm text-muted-foreground mt-2 italic">{t("admin")}: {group.admin_name}</p>
+                <p className="text-sm text-muted-foreground mt-2 italic">
+                  {t("admin")}: {group.admin_name}
+                </p>
               )}
 
-              {/* Gallery placeholder */}
-              <div className="mt-6">
-                <h2 className="text-lg font-semibold text-foreground mb-3">{t("gallery")}</h2>
-                <div className="grid grid-cols-3 gap-2">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-muted h-20 rounded-xl flex items-center justify-center text-muted-foreground text-sm">🖼️ {i}</div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <h2 className="text-lg font-semibold text-foreground mb-3">{t("videos")}</h2>
-                <div className="bg-muted h-32 rounded-xl flex items-center justify-center text-muted-foreground">📹 {t("videos_coming_soon")}</div>
-              </div>
-
               <div className="mt-8">
-                <button onClick={() => navigate("/dashboard/service/select")} className="btn-primary">{t("select_this_group")}</button>
+                <button
+                  onClick={() => navigate("/dashboard/service/select")}
+                  className="btn-primary"
+                >
+                  {t("select_this_group")}
+                </button>
               </div>
             </div>
           </div>

@@ -2,6 +2,45 @@
 import axiosInstance from './axios';
 import { AuthUser, Donation, ServiceSelection } from '../types';
 
+const extractErrorMessage = (error: any, fallback: string) => {
+  const data = error?.response?.data;
+
+  if (!data) {
+    if (!error?.response && error?.message) {
+      return 'Unable to reach the local backend. If it is not running, the app will retry against the deployed API.';
+    }
+    return fallback;
+  }
+
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  if (typeof data.detail === 'string') {
+    return data.detail;
+  }
+
+  if (Array.isArray(data.non_field_errors) && data.non_field_errors.length > 0) {
+    return String(data.non_field_errors[0]);
+  }
+
+  const fieldMessages = Object.entries(data)
+    .flatMap(([field, value]) => {
+      if (Array.isArray(value)) {
+        return value.map((item) => `${field}: ${String(item)}`);
+      }
+
+      if (typeof value === 'string') {
+        return `${field}: ${value}`;
+      }
+
+      return [];
+    })
+    .filter(Boolean);
+
+  return fieldMessages[0] || fallback;
+};
+
 // Helper to combine user and profile
 const combineUserWithProfile = (userData: any, profileData: any, membershipData: any): AuthUser => {
   const full_name = `${userData.first_name || ''} ${userData.middle_name || ''} ${userData.last_name || ''}`.trim();
@@ -89,7 +128,7 @@ export const api = {
       if (error.response && error.response.status === 401) {
         throw new Error("Incorrect Email or Password. If you don't have an account, please register.");
       }
-      throw error;
+      throw new Error(extractErrorMessage(error, 'Unable to sign in right now. Please try again.'));
     }
 
     const { access, refresh } = response.data;
@@ -112,14 +151,13 @@ export const api = {
 
   register: async (userData: any): Promise<{ success: boolean; user: AuthUser }> => {
     const payload = {
-      username: userData.email,
-      first_name: userData.first_name,
-      middle_name: userData.middle_name,
-      last_name: userData.last_name,
-      email: userData.email,
+      username: userData.email.trim().toLowerCase(),
+      first_name: userData.first_name.trim(),
+      middle_name: userData.middle_name.trim(),
+      last_name: userData.last_name.trim(),
+      email: userData.email.trim().toLowerCase(),
       gender: userData.gender, // M or F
       password: userData.password,
-      re_password: userData.password, // Required by Djoser default config
     };
 
     console.log('🚀 Sending registration payload:', payload);
@@ -130,7 +168,7 @@ export const api = {
       return await api.login(userData.email, userData.password);
     } catch (error: any) {
       console.error(' Registration error response:', error.response?.data);
-      throw error;
+      throw new Error(extractErrorMessage(error, 'Unable to create your account right now. Please try again.'));
     }
   },
   requestPasswordReset: async (email: string) => {

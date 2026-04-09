@@ -4,12 +4,33 @@ import axios, { InternalAxiosRequestConfig, AxiosHeaders, AxiosResponse } from '
 // Extend the InternalAxiosRequestConfig interface to include the _retry property
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
+  _baseUrlRetry?: boolean;
 }
 
 // No base URL – requests will be relative to the current origin
+const PRIMARY_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const FALLBACK_API_URL = import.meta.env.VITE_API_FALLBACK_URL || 'https://finot.onrender.com';
+const API_BASE_URL_STORAGE_KEY = 'finot_active_api_base_url';
+
+const getStoredApiBaseURL = () => {
+  if (typeof window === 'undefined') {
+    return PRIMARY_API_URL;
+  }
+
+  return window.sessionStorage.getItem(API_BASE_URL_STORAGE_KEY) || PRIMARY_API_URL;
+};
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: getStoredApiBaseURL(),
 });
+
+const setStoredApiBaseURL = (url: string) => {
+  if (typeof window !== 'undefined') {
+    window.sessionStorage.setItem(API_BASE_URL_STORAGE_KEY, url);
+  }
+
+  axiosInstance.defaults.baseURL = url;
+};
 
 // Add token to requests
 axiosInstance.interceptors.request.use(
@@ -36,6 +57,17 @@ axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error) => {
     const originalRequest = error.config as CustomAxiosRequestConfig;
+
+    if (!error.response && originalRequest && !originalRequest._baseUrlRetry) {
+      const currentBaseURL = String(originalRequest.baseURL || axiosInstance.defaults.baseURL || PRIMARY_API_URL);
+
+      if (FALLBACK_API_URL && currentBaseURL !== FALLBACK_API_URL) {
+        originalRequest._baseUrlRetry = true;
+        originalRequest.baseURL = FALLBACK_API_URL;
+        setStoredApiBaseURL(FALLBACK_API_URL);
+        return axiosInstance(originalRequest);
+      }
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;

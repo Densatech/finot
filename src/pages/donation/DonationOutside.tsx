@@ -152,7 +152,10 @@ const DonationOutside = () => {
               >
                 {/* Gradient overlay */}
                 <div
-                  className={`absolute inset-0 bg-gradient-to-b from-transparent to-transparent group-hover:from-[${card.color}] group-hover:to-white opacity-30 transition-all duration-500`}
+                  className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-30"
+                  style={{
+                    backgroundImage: `linear-gradient(to bottom, transparent 0%, ${card.color} 55%, white 100%)`,
+                  }}
                 />
 
                 <div
