@@ -1,11 +1,18 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom"; // ← new import
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../lib/api";
 import { Card, SectionHeader, StatsCard } from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import EmptyState from "../../components/ui/EmptyState";
 import { AttendanceRecord } from "../../types";
-import { FiCheckCircle, FiCalendar, FiTrendingUp, FiAward } from "react-icons/fi";
+import {
+  FiCheckCircle,
+  FiCalendar,
+  FiTrendingUp,
+  FiAward,
+  FiBook,
+} from "react-icons/fi"; // ← FiBook added
 
 const DashboardAttendance = () => {
   const { user } = useAuth();
@@ -30,7 +37,10 @@ const DashboardAttendance = () => {
   const presentCount = attendance.filter((a) => a.status === "PRESENT").length;
   const absentCount = attendance.filter((a) => a.status === "ABSENT").length;
   const lateCount = attendance.filter((a) => a.status === "LATE").length;
-  const attendanceRate = attendance.length > 0 ? Math.round((presentCount / attendance.length) * 100) : 0;
+  const attendanceRate =
+    attendance.length > 0
+      ? Math.round((presentCount / attendance.length) * 100)
+      : 0;
 
   const statusStyles: Record<string, string> = {
     PRESENT: "success",
@@ -58,6 +68,7 @@ const DashboardAttendance = () => {
 
   return (
     <div className="space-y-6">
+<<<<<<< Updated upstream
       <SectionHeader
         title="Attendance"
         description="Track your participation in fellowship activities"
@@ -69,20 +80,81 @@ const DashboardAttendance = () => {
         <StatsCard title="Present" value={presentCount} icon={<FiCheckCircle className="h-6 w-6" />} />
         <StatsCard title="Late" value={lateCount} icon={<FiCalendar className="h-6 w-6" />} />
         <StatsCard title="Total Events" value={attendance.length} icon={<FiAward className="h-6 w-6" />} />
+=======
+      {/* Header with button */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <SectionHeader
+          title={t("tab_attendance")}
+          description={t("tracking_participation")}
+          icon={<FiCheckCircle className="h-6 w-6" />}
+        />
+        <Link
+          to="/dashboard/course-attendance"
+          className="btn-outline inline-flex items-center gap-2 text-sm self-start sm:self-center"
+        >
+          <FiBook className="h-4 w-4" />
+          {t("course_attendance")}
+        </Link>
+>>>>>>> Stashed changes
       </div>
 
+      {/* Stats cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatsCard
+          title={t("attendance_rate")}
+          value={`${attendanceRate}%`}
+          icon={<FiTrendingUp className="h-6 w-6" />}
+          trend={{ value: 5, positive: true }}
+        />
+        <StatsCard
+          title={t("present")}
+          value={presentCount}
+          icon={<FiCheckCircle className="h-6 w-6" />}
+        />
+        <StatsCard
+          title={t("late")}
+          value={lateCount}
+          icon={<FiCalendar className="h-6 w-6" />}
+        />
+        <StatsCard
+          title={t("total_events")}
+          value={attendance.length}
+          icon={<FiAward className="h-6 w-6" />}
+        />
+      </div>
+
+      {/* Attendance history */}
       <Card>
+<<<<<<< Updated upstream
         <h3 className="mb-4 text-lg font-semibold text-foreground">Attendance History</h3>
         {attendance.length === 0 ? (
           <EmptyState icon={<FiCheckCircle className="h-8 w-8" />} title="No attendance records" description="Your attendance history will appear here." />
+=======
+        <h3 className="mb-4 text-base font-medium text-foreground">
+          {t("attendance_history")}
+        </h3>
+        {attendance.length === 0 ? (
+          <EmptyState
+            icon={<FiCheckCircle className="h-8 w-8" />}
+            title={t("no_attendance_records")}
+            description={t("attendance_history_will_appear")}
+          />
+>>>>>>> Stashed changes
         ) : (
           <div className="space-y-2">
             {attendance.map((record) => (
-              <div key={record.id} className="flex items-center justify-between rounded-xl bg-muted/50 p-4 transition hover:bg-muted">
+              <div
+                key={record.id}
+                className="flex items-center justify-between rounded-xl bg-muted/50 p-4 transition hover:bg-muted"
+              >
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-foreground">{record.event_title || "Event"}</p>
+                  <p className="font-medium text-foreground">
+                    {record.event_title || "Event"}
+                  </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {record.event_date ? new Date(record.event_date).toLocaleDateString() : "—"}
+                    {record.event_date
+                      ? new Date(record.event_date).toLocaleDateString()
+                      : "—"}
                     {record.remark && ` • ${record.remark}`}
                   </p>
                 </div>

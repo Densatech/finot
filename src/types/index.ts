@@ -188,3 +188,40 @@ export interface AuthUser {
   role: string;
   profile: AuthUserProfile;
 }
+<<<<<<< Updated upstream
+=======
+
+// DRF PageNumberPagination response envelope
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+// Course Attendance Types
+export interface Course {
+  id: number;
+  name: string;
+  code?: string;
+}
+
+export interface CourseAttendanceRecord {
+  id: number;
+  course_id: number;
+  course_name: string;
+  date: string;
+  status: "PRESENT" | "ABSENT" | "EXCUSED";
+}
+
+export interface CoursePermissionRequest {
+  id: number;
+  student_id: number;
+  student_name: string;
+  course_id: number;
+  course_name: string;
+  date: string;
+  reason: string;
+  status: "PENDING" | "APPROVED" | "DENIED";
+}
+>>>>>>> Stashed changes

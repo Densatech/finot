@@ -1,7 +1,21 @@
 import { NavLink } from "react-router-dom";
 import { AuthUser } from "../../types";
-import { FiGrid, FiUser, FiCalendar, FiCheckCircle, FiUsers, FiBriefcase, FiHeart, FiMessageCircle, FiBell, FiLogOut, FiChevronLeft, FiChevronRight, FiSettings } from "react-icons/fi";
-
+import {
+  FiGrid,
+  FiUser,
+  FiCalendar,
+  FiCheckCircle,
+  FiUsers,
+  FiBriefcase,
+  FiHeart,
+  FiMessageCircle,
+  FiBell,
+  FiLogOut,
+  FiChevronLeft,
+  FiChevronRight,
+  FiSettings,
+  FiBookOpen,
+} from "react-icons/fi";
 type NavItem = {
   to: string;
   label: string;
@@ -30,6 +44,7 @@ const DashboardSidebar = ({
   const role = user?.role;
 
   const navItems: NavItem[] = [
+<<<<<<< Updated upstream
     { to: "/dashboard", label: "Overview", icon: FiGrid, end: true },
     { to: "/dashboard/profile", label: "Profile", icon: FiUser },
     { to: "/dashboard/events", label: "Events", icon: FiCalendar },
@@ -48,6 +63,42 @@ const DashboardSidebar = ({
   if (role === "super_admin") {
     navItems.push({ to: "/admin", label: "Admin Panel", icon: FiSettings });
   }
+=======
+    { to: "/dashboard", label: t("tab_overview"), icon: FiGrid, end: true },
+    { to: "/dashboard/profile", label: t("profile"), icon: FiUser },
+    { to: "/dashboard/events", label: t("tab_events"), icon: FiCalendar },
+    {
+      to: "/dashboard/attendance",
+      label: t("tab_attendance"),
+      icon: FiCheckCircle,
+    },
+    { to: "/dashboard/family", label: t("tab_family"), icon: FiUsers },
+    { to: "/dashboard/service", label: t("tab_groups"), icon: FiBriefcase },
+    { to: "/dashboard/donations", label: t("donation"), icon: FiHeart },
+    { to: "/dashboard/questions", label: t("qa"), icon: FiMessageCircle },
+  ];
+
+  // Add admin routes
+  // Show "Manage Course Attendance" only for Attendance Manager role
+  if (role === "AttendanceManager" || role === "attendance_manager") {
+    navItems.push({
+      to: "/dashboard/manage-course-attendance",
+      label: t("manage_course_attendance"),
+      icon: FiBookOpen,
+    });
+  }
+
+  // Existing admin routes (ServiceAdmin)
+  if (role === "ServiceAdmin" || role === "service_admin") {
+    navItems.push({
+      to: "/dashboard/manage-ageglot",
+      label: t("manage_ageglot"),
+      icon: FiSettings,
+    });
+    // service_admin might also need course attendance? If not, remove it.
+  }
+  // Super admin is handled entirely via Django admin panel — no frontend route needed.
+>>>>>>> Stashed changes
 
   return (
     <aside
@@ -125,12 +176,17 @@ const DashboardSidebar = ({
           }`}
           title={collapsed ? "Logout" : undefined}
         >
+<<<<<<< Updated upstream
            <FiLogOut className="h-5 w-5 flex-shrink-0" />
           {!collapsed && <span>Logout</span>}
+=======
+          <FiLogOut className="h-5 w-5 flex-shrink-0" />
+          {!collapsed && <span>{t("logout")}</span>}
+>>>>>>> Stashed changes
         </button>
       </div>
     </aside>
   );
-};
+};;
 
 export default DashboardSidebar;

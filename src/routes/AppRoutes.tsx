@@ -1,3 +1,4 @@
+// src/routes/AppRoutes.tsx
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "../layouts/MainLayout";
 import DashboardLayout from "../layouts/DashboardLayout";
@@ -35,12 +36,16 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import GroupAdminDashboard from "../pages/admin/GroupAdminDashboard";
 import ProtectedRoute from "../features/auth/components/ProtectedRoute";
 
+// New imports for course attendance
+import ManageCourseAttendance from "../pages/admin/ManageCourseAttendance";
+import StudentCourseAttendance from "../pages/dashboard/StudentCourseAttendance";
+
 export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          {/* public */}
+          {/* public routes */}
           <Route index element={<HomePage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
@@ -63,7 +68,16 @@ export default function AppRoutes() {
           <Route
             element={
               <ProtectedRoute
+<<<<<<< Updated upstream
                 allowedRoles={["student", "service_admin", "super_admin"]}
+=======
+                allowedRoles={[
+                  "student",
+                  "service_admin",
+                  "attendance_manager",
+                  "admin",
+                ]}
+>>>>>>> Stashed changes
               />
             }
           >
@@ -82,10 +96,15 @@ export default function AppRoutes() {
               <Route path="donations/history" element={<DonationHistory />} />
               <Route path="donations/profile" element={<DonationProfile />} />
               <Route path="questions" element={<DashboardQuestions />} />
+<<<<<<< Updated upstream
+=======
+              <Route path="questions/ask" element={<AskQuestion />} />
+>>>>>>> Stashed changes
               <Route
                 path="notifications"
                 element={<DashboardNotifications />}
               />
+<<<<<<< Updated upstream
             </Route>
           </Route>
 
@@ -100,6 +119,33 @@ export default function AppRoutes() {
           <Route element={<ProtectedRoute allowedRoles={["super_admin"]} />}>
             <Route path="admin" element={<AdminDashboard />} />
           </Route>
+=======
+
+              {/* Student course attendance (accessible to students and admins) */}
+              <Route
+                path="course-attendance"
+                element={<StudentCourseAttendance />}
+              />
+
+              {/* Admin‑only routes inside dashboard layout */}
+
+              {/* Service Admin: manage ageglot */}
+              <Route
+                element={<ProtectedRoute allowedRoles={["service_admin"]} />}
+              >
+                <Route
+                  path="manage-ageglot"
+                  element={<ManageAgeglotDashboard />}
+                />
+              </Route>
+
+              {/* Course Attendance Manager: manage course attendance */}
+              <Route element={<ProtectedRoute allowedRoles={["attendance_manager", "service_admin", "admin"]} />}>
+  <Route path="manage-course-attendance" element={<ManageCourseAttendance />} />
+</Route>
+            </Route>
+          </Route>
+>>>>>>> Stashed changes
         </Route>
       </Routes>
     </BrowserRouter>
