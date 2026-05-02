@@ -1,7 +1,9 @@
 // src/services/api.real.js
 import axiosInstance from './axios';
-import { AuthUser, AttendanceRecord, Donation, Event, Question, PaginatedResponse, ServiceGroup, ServiceSelection } from '../types';
-
+import { AuthUser, AttendanceRecord, Donation, Event, Question, PaginatedResponse, ServiceGroup, ServiceSelection, Answer } from '../types';
+//import { privateQaMockApi, MockPrivateQuestion, MockPrivateAnswer } from './privateQaMockApi';
+import { Resource } from '@/types/resource';
+//import {Course, CourseSession, CourseAttendance, CourseWithDetails} from '@types/course'
 export const BACKEND_PAGE_SIZE = 20;
 
 /**
@@ -34,7 +36,12 @@ const combineUserWithProfile = (userData: Record<string, any>, profileData: Reco
     role = 'service_admin';
   } else if (backendRoles.includes('FamilyAdmin')) {
     role = 'family_admin';
+  } else if (backendRoles.includes('QACounselor')){
+    role = 'QA_counselor';
+  } else if (backendRoles.includes('Teacher')){
+    role = 'teacher'
   }
+
 
   return {
     id: userData.id,
@@ -103,6 +110,7 @@ export const api = {
     let response;
     try {
       response = await axiosInstance.post('/auth/jwt/create/', { username: email, password });
+      console.log("LOGIN RAW RESPONSE:", response);
     } catch (error: any) {
       if (error.response && error.response.status === 401) {
         throw new Error("Incorrect Email or Password. If you don't have an account, please register.");
@@ -348,6 +356,8 @@ export const api = {
     return { success: true };
   },
 
+
+
   // ========== ADMIN SPECIFIC ==========
   getGroupByAdminId: async (adminId: string | number) => {
     const response = await axiosInstance.get(`/api/service/groups/?admin=${adminId}`);
@@ -384,4 +394,159 @@ export const api = {
     await axiosInstance.delete(`/auth/users/${userId}/`);
     return { success: true };
   },
+
+  // ========== UPDATED Q&A API METHODS ==========
+
+// Get user's private questions (for student inbox)
+getPrivateInbox: async (): Promise<Question[]> => {
+  const response = await axiosInstance.get('/api/qa/questions/private-inbox/');
+  return response.data;
+},
+
+// Get user's contributions (questions + answers)
+getMyContributions: async (): Promise<{ questions: Question[]; answers: Answer[] }> => {
+  const response = await axiosInstance.get('/api/qa/questions/my-contributions/');
+  return response.data;
+},
+
+// Counselor: Get queue of private questions
+getCounselorQueue: async (): Promise<Question[]> => {
+  const response = await axiosInstance.get('/api/qa/questions/counselor-queue/');
+  return response.data;
+},
+
+// Moderator: Get moderation queue
+getModerationQueue: async (): Promise<Question[]> => {
+  const response = await axiosInstance.get('/api/qa/questions/moderation-queue/');
+  return response.data;
+},
+
+// Approve public question (moderator only)
+approveQuestion: async (questionId: string): Promise<void> => {
+  await axiosInstance.post(`/api/qa/questions/${questionId}/approve/`);
+},
+
+// Approve public answer (moderator only)
+approveAnswer: async (answerId: number): Promise<void> => {
+  await axiosInstance.post(`/api/qa/answers/${answerId}/approve/`);
+},
+
+
+// ========== RESOURCES API ==========
+
+// Get all resources with filters
+getResources: async (params?: {
+  category?: string;
+  batch?: number;
+  group?: number;
+  search?: string;
+}): Promise<Resource[]> => {
+  const queryParams = new URLSearchParams();
+  if (params?.category) queryParams.append('category', params.category);
+  if (params?.batch) queryParams.append('batch', params.batch.toString());
+  if (params?.group) queryParams.append('group', params.group.toString());
+  if (params?.search) queryParams.append('search', params.search);
+  
+  const url = `/api/resources/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const response = await axiosInstance.get(url);
+  return unwrapResults(response.data);
+},
+
+// Get single resource
+getResourceById: async (id: number): Promise<Resource> => {
+  const response = await axiosInstance.get(`/api/resources/${id}/`);
+  return response.data;
+},
+
+// Upload new resource (admin only)
+uploadResource: async (formData: FormData): Promise<Resource> => {
+  const response = await axiosInstance.post('/api/resources/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+},
+
+// Update resource (admin only)
+updateResource: async (id: number, formData: FormData): Promise<Resource> => {
+  const response = await axiosInstance.patch(`/api/resources/${id}/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+},
+
+// Delete resource (admin only)
+deleteResource: async (id: number): Promise<void> => {
+  await axiosInstance.delete(`/api/resources/${id}/`);
+},
+
+// Get resource categories
+getResourceCategories: async (): Promise<{ id: string; name: string; icon: string }[]> => {
+  // For now, return static categories
+  return Promise.resolve([
+    { id: "BIBLE_STUDY", name: "Bible Study", icon: "BookOpenIcon" },
+    { id: "SERMON", name: "Sermon", icon: "MusicalNoteIcon" },
+    { id: "DOCUMENT", name: "Document", icon: "DocumentIcon" },
+    { id: "VIDEO", name: "Video", icon: "VideoCameraIcon" },
+    { id: "AUDIO", name: "Audio", icon: "SpeakerWaveIcon" },
+    { id: "LINK", name: "Link", icon: "LinkIcon" },
+    { id: "OTHER", name: "Other", icon: "FolderIcon" },
+  ]);
+},
+
+// ========== COURSE ATTENDANCE API (NEW BACKEND) ==========
+
+// Get semester courses (auto-filtered by role: STUDENT sees enrolled, TEACHER sees assigned)
+getSemesterCourses: async (): Promise<any[]> => {
+  const response = await axiosInstance.get('/api/course/semester-courses/');
+  return response.data;
+},
+
+// Get enrollments for a specific semester course (teacher only)
+getCourseEnrollments: async (semesterCourseId: string): Promise<any[]> => {
+  const response = await axiosInstance.get(`/api/course/enrollments/?semester_course=${semesterCourseId}`);
+  return response.data;
+},
+
+// Get sessions for a semester course
+getCourseSessions: async (semesterCourseId: string): Promise<any[]> => {
+  const response = await axiosInstance.get(`/api/course/sessions/?semester_course=${semesterCourseId}`);
+  return response.data;
+},
+
+// Create a new session (teacher only)
+createCourseSession: async (data: {
+  semester_course: string;
+  session_date: string;
+  topic?: string;
+}): Promise<any> => {
+  const response = await axiosInstance.post('/api/course/sessions/', data);
+  return response.data;
+},
+
+// Get my attendance records (student only)
+getMyCourseAttendance: async (): Promise<any[]> => {
+  const response = await axiosInstance.get('/api/course/attendance/');
+  return response.data;
+},
+
+// Bulk mark attendance (teacher only)
+bulkMarkAttendance: async (sessionId: string, records: { student_id: string; status: string; remarks?: string }[]): Promise<any> => {
+  const response = await axiosInstance.post(`/api/course/attendance/bulk-mark/${sessionId}/`, { records });
+  return response.data;
+},
+
+// Get course materials
+getCourseMaterials: async (semesterCourseId: string): Promise<any[]> => {
+  const response = await axiosInstance.get(`/api/course/materials/?semester_course=${semesterCourseId}`);
+  return response.data;
+},
+
+// Upload course material (teacher only)
+uploadCourseMaterial: async (data: FormData): Promise<any> => {
+  const response = await axiosInstance.post('/api/course/materials/', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+},
+  
 };
