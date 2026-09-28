@@ -9,7 +9,10 @@ npm install
 npm run dev          # http://localhost:5176, proxies /api and /auth to http://localhost:8000
 npm run typecheck && npm run lint && npm test
 npm run build        # requires VITE_API_URL
+npm run e2e          # Playwright: starts Django (fresh SQLite + seed_e2e) on :8001 and Vite on :5177
 ```
+
+The e2e suite needs `uv` for the backend and Google Chrome locally. In CI, run `npx playwright install chromium` and set `PW_CHANNEL=chromium`. Chapa is mocked in the browser, so no payment is ever made.
 
 | Variable | Purpose |
 |---|---|
