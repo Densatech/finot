@@ -10,6 +10,7 @@ const fadeIn = { hidden: { opacity: 0, scale: 0.95 }, visible: { opacity: 1, sca
 
 interface ReceiptDetails {
   status?: string;
+  payment_status?: "PENDING" | "COMPLETED" | "FAILED";
   amount?: number;
   currency?: string;
   tx_ref?: string;
@@ -28,18 +29,39 @@ const DonationSuccess = () => {
 
   useEffect(() => {
     if (!txRef) { setStatus("missing"); return; }
-    const verify = async () => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    // The API answers 202 while Chapa still reports the payment as pending and 503 when
+    // the gateway is unreachable; both are retried a few times before giving up.
+    const MAX_ATTEMPTS = 6;
+    const RETRY_MS = 5000;
+
+    const verify = async (attempt: number) => {
       setStatus("loading");
       try {
         const data = await api.verifyDonation(txRef);
+        if (cancelled) return;
+        if (data?.payment_status === "PENDING") {
+          if (attempt < MAX_ATTEMPTS) { timer = setTimeout(() => verify(attempt + 1), RETRY_MS); return; }
+          setErrorMessage(t("payment_still_pending", "Your payment is still being processed. Please check your donation history in a few minutes."));
+          setStatus("error");
+          return;
+        }
         setDetails(data);
         setStatus("success");
       } catch (error: any) {
-        setErrorMessage(error?.response?.data?.detail || error?.message || t("unable_verify_payment"));
+        if (cancelled) return;
+        if (error?.response?.status === 503 && attempt < MAX_ATTEMPTS) {
+          timer = setTimeout(() => verify(attempt + 1), RETRY_MS);
+          return;
+        }
+        setErrorMessage(error?.response?.data?.detail || error?.response?.data?.status || error?.message || t("unable_verify_payment"));
         setStatus("error");
       }
     };
-    verify();
+    verify(1);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [txRef, t]);
 
   const handlePrint = () => {

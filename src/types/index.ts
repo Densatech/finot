@@ -119,7 +119,7 @@ payment: DonationPayment;
 export interface Answer {
 id: number;
 question: string; // UUID
-responder: number | null; // User ID
+is_mine?: boolean; // true when the logged-in user wrote it
 display_name: string;
 answer_body: string;
 is_approved: boolean; // For "Verified" check
@@ -129,7 +129,7 @@ created_at: string;
 
 export interface Question {
 id: string; // UUID
-user: number | null; // User ID
+is_mine?: boolean; // true when the logged-in user asked it
 display_name: string;
 category: "Spiritual" | "Academic" | "Family" | "Personal" | "Other";
 question_body: string;

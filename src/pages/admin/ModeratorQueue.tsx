@@ -21,7 +21,7 @@ const fadeIn = {
 
 interface PendingQuestion {
   id: string;
-  user: number | null;
+  is_mine?: boolean;
   display_name: string;
   category: string;
   question_body: string;
@@ -34,7 +34,7 @@ interface PendingQuestion {
 interface PendingAnswer {
   id: number;
   question: string | number;
-  responder: number | null;
+  is_mine?: boolean;
   display_name: string;
   answer_body: string;
   is_approved: boolean;

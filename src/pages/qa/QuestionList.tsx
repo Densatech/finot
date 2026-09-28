@@ -217,10 +217,8 @@ const QuestionList = ({ isDashboard = false }: { isDashboard?: boolean }) => {
     }
   };
 
-  const canModify = (itemUserId?: number | null) => {
-    if (!itemUserId) return false;
-    return isAdmin || (isLoggedIn && user?.id === itemUserId);
-  };
+  // The API never exposes author ids (questions are anonymous); it sends `is_mine` instead.
+  const canModify = (isMine?: boolean) => isAdmin || (isLoggedIn && !!isMine);
 
   const totalPages = Math.ceil(totalCount / BACKEND_PAGE_SIZE);
 
@@ -401,7 +399,7 @@ const QuestionList = ({ isDashboard = false }: { isDashboard?: boolean }) => {
                         </div>
                         <div className="flex items-center gap-2 self-start">
                           <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-lg">{t("answers_count", { count: answers.length })}</span>
-                          {canModify(q.user) && (
+                          {canModify(q.is_mine) && (
                             <>
                               <button onClick={() => { setEditingQuestion(q.id); setEditedQuestionBody(q.question_body); }} className="text-muted-foreground hover:text-foreground">
                                 <PencilIcon className="h-4 w-4" />
@@ -432,7 +430,7 @@ const QuestionList = ({ isDashboard = false }: { isDashboard?: boolean }) => {
                             <div key={a.id} className="p-3 bg-muted/50 rounded-xl">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs text-muted-foreground font-medium">{a.display_name}</span>
-                                {canModify(a.responder) && (
+                                {canModify(a.is_mine) && (
                                   <button onClick={() => deleteAnswer(a.id)} className="text-muted-foreground hover:text-destructive">
                                     <TrashIcon className="h-3.5 w-3.5" />
                                   </button>
