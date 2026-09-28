@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import Tabs from "@/components/ui/Tabs";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -143,20 +145,7 @@ export default function QuestionList({ isDashboard = false }: { isDashboard?: bo
       )}
 
       {tabs.length > 1 && (
-        <div role="tablist" className="tabs">
-          {tabs.map((tb) => (
-            <button
-              key={tb.id}
-              role="tab"
-              type="button"
-              aria-selected={tab === tb.id}
-              onClick={() => setTab(tb.id)}
-              className="tab"
-            >
-              {tb.label}
-            </button>
-          ))}
-        </div>
+        <Tabs items={tabs} value={tab} onChange={setTab} label={t("anonymous_qa", "Q&A")} />
       )}
 
       {tab === "public" && (
@@ -177,9 +166,13 @@ export default function QuestionList({ isDashboard = false }: { isDashboard?: bo
             empty={<EmptyState icon={<ChatBubbleLeftRightIcon className="h-8 w-8" />} title={t("no_questions", "No questions yet")} description={t("be_first_to_ask", "Be the first to ask.")} />}
           >
             <div className={`space-y-4 ${publicQuery.isFetching ? "opacity-70" : ""}`}>
-              {publicQuery.data?.results.map((q) => (
-                <QuestionCard key={q.id} question={q} canAnswer={!!user} onAnswer={answer} {...cardProps} />
-              ))}
+              <Stagger className="space-y-4" key={`${page}-${category}-${debouncedSearch}`}>
+                {publicQuery.data?.results.map((q) => (
+                  <StaggerItem key={q.id}>
+                    <QuestionCard question={q} canAnswer={!!user} onAnswer={answer} {...cardProps} />
+                  </StaggerItem>
+                ))}
+              </Stagger>
             </div>
             <Pagination page={page} totalPages={Math.ceil((publicQuery.data?.count ?? 0) / PAGE_SIZE)} onPageChange={setPage} />
           </QueryState>

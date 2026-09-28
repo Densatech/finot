@@ -47,27 +47,23 @@ export default {
         sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        soft: "0 2px 8px -2px hsl(var(--primary) / 0.08)",
-        card: "0 4px 16px -4px hsl(var(--primary) / 0.1)",
-        elevated: "0 8px 32px -8px hsl(var(--primary) / 0.15)",
+        soft: "0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.06)",
+        card: "0 4px 12px -2px rgb(16 24 40 / 0.08), 0 2px 4px -2px rgb(16 24 40 / 0.04)",
+        elevated: "0 16px 32px -8px rgb(16 24 40 / 0.16), 0 4px 8px -4px rgb(16 24 40 / 0.06)",
       },
       animation: {
-        fadeIn: "fadeIn 0.6s ease-out",
-        slideUp: "slideUp 0.5s ease-out",
-        shimmer: "shimmer 2s infinite linear",
+        shimmer: "shimmer 1.6s ease-in-out infinite",
+        marquee: "marquee 50s linear infinite",
+        "marquee-reverse": "marquee 55s linear infinite reverse",
       },
       keyframes: {
-        fadeIn: {
-          "0%": { opacity: "0", transform: "translateY(12px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        slideUp: {
-          "0%": { opacity: "0", transform: "translateY(24px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
         },
         shimmer: {
-          "0%": { backgroundPosition: "-200% 0" },
-          "100%": { backgroundPosition: "200% 0" },
+          "0%": { backgroundPosition: "200% 0" },
+          "100%": { backgroundPosition: "-200% 0" },
         },
       },
     },

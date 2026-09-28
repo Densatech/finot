@@ -34,7 +34,7 @@ export default function AskQuestion() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const next: Record<string, string> = {};
-    const required = t("field_required", "This field is required.");
+    const required = t("required_field", "This field is required.");
     if (!category) next.category = required;
     if (!body.trim()) next.question_body = required;
     setErrors(next);
@@ -80,7 +80,7 @@ export default function AskQuestion() {
         {isDashboard && (
           <SectionHeader title={t("ask_question", "Ask a question")} description={t("identity_anonymous", "Your identity is never shown publicly.")} />
         )}
-        <div className="card border-t-4 border-t-accent">
+        <div className="card shadow-card">
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <fieldset>

@@ -71,7 +71,7 @@ export default function DonationSuccess() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center bg-background px-4 py-12">
-      <div className="card w-full max-w-lg border-t-4 border-t-accent text-center print:border-0 print:shadow-none">
+      <div className="card w-full max-w-lg text-center shadow-card print:border-0 print:shadow-none">
         {phase === "checking" && (
           <div className="space-y-3 py-6">
             <Spinner size="h-8 w-8" className="mx-auto text-primary" />

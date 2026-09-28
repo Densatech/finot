@@ -14,7 +14,7 @@ function FieldShell({ id, label, error, hint, required, children }: FieldShellPr
     <div className="space-y-1.5">
       <label htmlFor={id} className="block text-sm font-medium text-foreground">
         {label}
-        {required && <span className="ml-0.5 text-destructive">*</span>}
+        {required && <span className="ml-0.5 text-destructive" aria-hidden="true">*</span>}
       </label>
       {children}
       {error ? (

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -74,9 +75,9 @@ export default function DashboardNotifications() {
           isEmpty={!data?.results.length}
           empty={<EmptyState icon={<BellIcon className="h-8 w-8" />} title={t("no_notifications", "No notifications")} description={t("notifications_empty", "Updates from the fellowship will appear here.")} />}
         >
-          <ul className={`divide-y divide-border ${isFetching ? "opacity-70" : ""}`}>
+          <Stagger as="ul" className={`divide-y divide-border ${isFetching ? "opacity-70" : ""}`}>
             {data?.results.map((n) => (
-              <li key={n.id}>
+              <StaggerItem as="li" key={n.id}>
                 <button
                   type="button"
                   onClick={() => open(n)}
@@ -89,9 +90,9 @@ export default function DashboardNotifications() {
                     <span className="mt-1 block text-xs text-muted-foreground">{new Date(n.created_at).toLocaleString()}</span>
                   </span>
                 </button>
-              </li>
+              </StaggerItem>
             ))}
-          </ul>
+          </Stagger>
         </QueryState>
       </Card>
       <Pagination page={page} totalPages={Math.ceil((data?.count ?? 0) / PAGE_SIZE)} onPageChange={setPage} />

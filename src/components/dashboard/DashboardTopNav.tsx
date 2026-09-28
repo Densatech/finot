@@ -3,6 +3,7 @@ import { Bars3Icon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import type { AuthUser } from "@/types";
+import { useScrolled } from "@/hooks/useScrolled";
 import Avatar from "@/components/ui/Avatar";
 import LanguageSelector from "@/components/ui/LanguageSelector";
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -15,6 +16,7 @@ type DashboardTopNavProps = {
 
 export default function DashboardTopNav({ user, onMenuClick, onLogout }: DashboardTopNavProps) {
   const { t } = useTranslation();
+  const scrolled = useScrolled("dashboard-main-scroll");
   const firstName = user.first_name || user.full_name.split(" ")[0];
   const profile = user.profile;
   const subtitle = [profile?.department, profile?.batch_year ? `${t("batch", "Batch")} ${profile.batch_year}` : null]
@@ -22,7 +24,7 @@ export default function DashboardTopNav({ user, onMenuClick, onLogout }: Dashboa
     .join(" • ");
 
   return (
-    <header className="sticky top-0 z-30 border-b-2 border-accent bg-card shadow-soft">
+    <header className={`sticky top-0 z-30 border-b border-border bg-card transition-shadow duration-200 ${scrolled ? "shadow-card" : ""}`}>
       <div className="flex h-16 items-center justify-between gap-3 px-4 md:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <button
@@ -34,8 +36,8 @@ export default function DashboardTopNav({ user, onMenuClick, onLogout }: Dashboa
             <Bars3Icon className="h-6 w-6" />
           </button>
           <div className="hidden min-w-0 md:block">
-            <p className="truncate text-sm font-semibold text-primary">
-              {t("welcome_back", "Welcome back")}, {firstName}
+            <p className="truncate text-sm font-semibold text-foreground">
+              {t("welcome_back", { name: firstName })}
             </p>
             {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
           </div>
@@ -51,7 +53,7 @@ export default function DashboardTopNav({ user, onMenuClick, onLogout }: Dashboa
             </MenuButton>
             <MenuItems
               anchor={{ to: "bottom end", gap: 8 }}
-              className="z-50 w-52 rounded-xl border border-border bg-card p-1 shadow-elevated focus:outline-none"
+              transition className="z-50 w-52 rounded-xl border border-border bg-card p-1 shadow-elevated focus:outline-none transition origin-top-right duration-150 ease-out data-[closed]:scale-95 data-[closed]:opacity-0"
             >
               <div className="border-b border-border px-3 py-2">
                 <p className="truncate text-sm font-medium text-foreground">{user.full_name}</p>

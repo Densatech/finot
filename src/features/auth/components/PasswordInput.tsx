@@ -15,7 +15,7 @@ export default function PasswordInput({ label, error, hint, id, className = "", 
     <div className="space-y-1.5">
       <label htmlFor={fieldId} className="block text-sm font-medium text-foreground">
         {label}
-        {rest.required && <span className="ml-0.5 text-destructive">*</span>}
+        {rest.required && <span className="ml-0.5 text-destructive" aria-hidden="true">*</span>}
       </label>
       <div className="relative">
         <input

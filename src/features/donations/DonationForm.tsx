@@ -27,7 +27,7 @@ export default function DonationForm({ guest }: { guest: boolean }) {
 
   const validate = () => {
     const next: Record<string, string> = {};
-    const required = t("field_required", "This field is required.");
+    const required = t("required_field", "This field is required.");
     if (guest) {
       if (!firstName.trim()) next.first_name = required;
       if (!lastName.trim()) next.last_name = required;

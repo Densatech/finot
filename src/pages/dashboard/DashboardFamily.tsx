@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { PhoneIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { useMyFamily } from "@/hooks/queries";
 import { Card, SectionHeader } from "@/components/ui/Card";
@@ -64,14 +65,14 @@ export default function DashboardFamily() {
             </div>
             <Card>
               <h2 className="section-title mb-3">
-                {t("siblings_count", "Siblings")} ({family.siblings.length})
+                {t("siblings_count", { count: family.siblings.length })}
               </h2>
               {family.siblings.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("no_siblings", "No other members yet.")}</p>
               ) : (
-                <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Stagger as="ul" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {family.siblings.map((s) => (
-                    <li key={s.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                    <StaggerItem as="li" key={s.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
                       <Avatar alt={s.name} size="md" />
                       <div className="min-w-0">
                         <p className="truncate font-medium text-foreground">{s.name}</p>
@@ -79,9 +80,9 @@ export default function DashboardFamily() {
                           {s.email}
                         </a>
                       </div>
-                    </li>
+                    </StaggerItem>
                   ))}
-                </ul>
+                </Stagger>
               )}
             </Card>
           </>

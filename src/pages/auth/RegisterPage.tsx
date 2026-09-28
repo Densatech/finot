@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { useRef, useState, type FormEvent } from "react";
+import { Link, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
@@ -24,20 +24,21 @@ const EMPTY: FormState = { first_name: "", middle_name: "", last_name: "", email
 export default function RegisterPage() {
   const { t } = useTranslation();
   const { user, register } = useAuth();
-  const navigate = useNavigate();
+  // Set once registration succeeds so the redirect below sends new members to onboarding.
+  const justRegistered = useRef(false);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={justRegistered.current ? "/dashboard/profile/edit" : "/dashboard"} replace />;
 
   const set = (key: keyof FormState) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
   const validate = () => {
     const next: Record<string, string> = {};
-    const required = t("field_required", "This field is required.");
+    const required = t("required_field", "This field is required.");
     (["first_name", "middle_name", "last_name", "email", "gender", "password"] as const).forEach((k) => {
       if (!form[k].trim()) next[k] = required;
     });
@@ -55,6 +56,7 @@ export default function RegisterPage() {
     if (Object.keys(clientErrors).length) return;
 
     setSubmitting(true);
+    justRegistered.current = true;
     try {
       await register({
         email: form.email,
@@ -65,8 +67,8 @@ export default function RegisterPage() {
         gender: form.gender as "M" | "F",
       });
       toast.success(t("account_created", "Account created. Welcome to Finot!"));
-      navigate("/dashboard/profile/edit", { replace: true });
     } catch (err) {
+      justRegistered.current = false;
       const fieldErrors = getFieldErrors(err);
       if (Object.keys(fieldErrors).length) {
         setErrors(fieldErrors);

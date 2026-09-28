@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { useTranslation } from "react-i18next";
 import { CalendarDaysIcon, ClockIcon, MapPinIcon } from "@heroicons/react/24/outline";
 import { useEvents } from "@/hooks/queries";
@@ -61,12 +62,12 @@ export default function DashboardEvents() {
           </Card>
         }
       >
-        <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Stagger as="ul" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map(({ event, status }) => (
-            <li key={event.id}>
-              <Card padding="none" className="flex h-full flex-col overflow-hidden">
+            <StaggerItem as="li" key={event.id}>
+              <Card padding="none" interactive className="group flex h-full flex-col overflow-hidden">
                 {event.photo && (
-                  <img src={event.photo} alt="" className="h-40 w-full object-cover" loading="lazy" decoding="async" />
+                  <div className="h-40 overflow-hidden"><img src={event.photo} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" decoding="async" /></div>
                 )}
                 <div className="flex flex-1 flex-col gap-2 p-5">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -97,9 +98,9 @@ export default function DashboardEvents() {
                   </div>
                 </div>
               </Card>
-            </li>
+            </StaggerItem>
           ))}
-        </ul>
+        </Stagger>
       </QueryState>
     </div>
   );

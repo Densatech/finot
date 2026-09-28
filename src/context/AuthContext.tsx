@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import { authApi, type RegisterPayload } from "@/lib/api";
 import { qk } from "@/lib/queryClient";
 import { AUTH_EXPIRED_EVENT, tokens } from "@/lib/tokens";
@@ -36,9 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // The HTTP layer fires this when a refresh token is rejected.
   useEffect(() => {
-    window.addEventListener(AUTH_EXPIRED_EVENT, signOutLocally);
-    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, signOutLocally);
-  }, [signOutLocally]);
+    const onExpired = () => {
+      const hadUser = !!queryClient.getQueryData(qk.me);
+      signOutLocally();
+      if (hadUser) toast.error("Your session has expired. Please sign in again.", { id: "session-expired" });
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
+  }, [signOutLocally, queryClient]);
 
   const loadUser = useCallback(async () => {
     const me = await queryClient.fetchQuery({ queryKey: qk.me, queryFn: authApi.me, staleTime: 0 });

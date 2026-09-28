@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { useTranslation } from "react-i18next";
+import Tabs from "@/components/ui/Tabs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { CheckIcon, ShieldCheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -57,25 +59,14 @@ export default function ModeratorQueue() {
   return (
     <div className="space-y-6">
       <SectionHeader title={t("moderation_queue", "Moderation queue")} description={t("moderation_queue_description")} />
-      <div role="tablist" className="tabs">
-        {(
-          [
-            ["questions", `${t("pending_questions", "Questions")} (${counts.questions})`],
-            ["answers", `${t("pending_answers", "Answers")} (${counts.answers})`],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            role="tab"
-            type="button"
-            aria-selected={tab === id}
-            onClick={() => setTab(id)}
-            className="tab"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={[
+          { id: "questions" as const, label: t("pending_questions", "Questions"), count: counts.questions },
+          { id: "answers" as const, label: t("pending_answers", "Answers"), count: counts.answers },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === "questions" ? (
         <QueryState
@@ -85,9 +76,9 @@ export default function ModeratorQueue() {
           isEmpty={!counts.questions}
           empty={<Card><EmptyState icon={<ShieldCheckIcon className="h-8 w-8" />} title={t("no_pending_questions", "Nothing to review")} description="" /></Card>}
         >
-          <ul className="space-y-4">
+          <Stagger as="ul" className="space-y-4">
             {questions.data?.map((q) => (
-              <li key={q.id}>
+              <StaggerItem as="li" key={q.id}>
                 <Card className="space-y-3">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-semibold text-primary">{t(`cat_${q.category.toLowerCase()}`, q.category)}</span>
@@ -107,9 +98,9 @@ export default function ModeratorQueue() {
                     </Button>
                   </div>
                 </Card>
-              </li>
+              </StaggerItem>
             ))}
-          </ul>
+          </Stagger>
         </QueryState>
       ) : (
         <QueryState
@@ -119,9 +110,9 @@ export default function ModeratorQueue() {
           isEmpty={!counts.answers}
           empty={<Card><EmptyState icon={<ShieldCheckIcon className="h-8 w-8" />} title={t("no_pending_answers", "No answers to review")} description="" /></Card>}
         >
-          <ul className="space-y-4">
+          <Stagger as="ul" className="space-y-4">
             {answers.data?.map((a) => (
-              <li key={a.id}>
+              <StaggerItem as="li" key={a.id}>
                 <Card className="space-y-3">
                   <div className="rounded-xl bg-muted p-3 text-sm">
                     <p className="text-xs font-semibold uppercase text-muted-foreground">{t("question", "Question")}</p>
@@ -144,9 +135,9 @@ export default function ModeratorQueue() {
                     </Button>
                   </div>
                 </Card>
-              </li>
+              </StaggerItem>
             ))}
-          </ul>
+          </Stagger>
         </QueryState>
       )}
     </div>

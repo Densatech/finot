@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { ArrowTopRightOnSquareIcon, DocumentIcon, LinkIcon, TrashIcon } from "@heroicons/react/24/outline";
 import type { Material, MaterialType } from "@/types";
 
@@ -29,12 +30,12 @@ export default function MaterialList({ materials, onDelete, canDelete }: Materia
   };
 
   return (
-    <ul className="divide-y divide-border">
+    <Stagger as="ul" className="divide-y divide-border">
       {materials.map((m) => {
         const href = m.file || m.url;
         const scope = m.course_title || m.service_group_name;
         return (
-          <li key={m.id} className="flex items-start gap-3 py-4">
+          <StaggerItem as="li" key={m.id} className="flex items-start gap-3 py-4">
             <span className="rounded-xl bg-muted p-2.5 text-primary">
               {m.file ? <DocumentIcon className="h-5 w-5" aria-hidden="true" /> : <LinkIcon className="h-5 w-5" aria-hidden="true" />}
             </span>
@@ -75,9 +76,9 @@ export default function MaterialList({ materials, onDelete, canDelete }: Materia
                 </button>
               )}
             </div>
-          </li>
+          </StaggerItem>
         );
       })}
-    </ul>
+    </Stagger>
   );
 }

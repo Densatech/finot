@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { useTranslation } from "react-i18next";
+import Tabs from "@/components/ui/Tabs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { ChatBubbleLeftRightIcon, UserIcon } from "@heroicons/react/24/outline";
@@ -59,25 +61,14 @@ export default function CounselorQueue() {
           </Button>
         }
       />
-      <div role="tablist" className="tabs">
-        {(
-          [
-            ["unanswered", `${t("unanswered", "Unanswered")} (${unanswered.length})`],
-            ["answered", `${t("answered", "Answered")} (${answered.length})`],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            role="tab"
-            type="button"
-            aria-selected={tab === id}
-            onClick={() => setTab(id)}
-            className="tab"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={[
+          { id: "unanswered" as const, label: t("unanswered", "Unanswered"), count: unanswered.length },
+          { id: "answered" as const, label: t("answered", "Answered"), count: answered.length },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       <QueryState
         isLoading={isLoading}
@@ -94,9 +85,9 @@ export default function CounselorQueue() {
           </Card>
         }
       >
-        <ul className="space-y-4">
+        <Stagger as="ul" className="space-y-4">
           {list.map((q) => (
-            <li key={q.id}>
+            <StaggerItem as="li" key={q.id}>
               <Card className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-semibold text-primary">{t(`cat_${q.category.toLowerCase()}`, q.category)}</span>
@@ -119,9 +110,9 @@ export default function CounselorQueue() {
                   </Button>
                 </div>
               </Card>
-            </li>
+            </StaggerItem>
           ))}
-        </ul>
+        </Stagger>
       </QueryState>
 
       <Modal open={!!selected} onClose={() => setSelected(null)} title={t("answer_question", "Answer question")} size="lg">

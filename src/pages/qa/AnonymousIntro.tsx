@@ -9,6 +9,7 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import PublicHero from "@/components/navigation/PublicHero";
+import { Stagger, StaggerItem } from "@/components/motion";
 
 export default function AnonymousIntro() {
   const { t } = useTranslation();
@@ -35,7 +36,7 @@ export default function AnonymousIntro() {
         </Link>
         <Link
           to="/anonymous/ask"
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/40 px-6 py-3 text-base font-semibold text-white hover:bg-white/10"
+          className="btn-outline px-6 py-3 text-base"
         >
           <PencilSquareIcon className="h-5 w-5" aria-hidden="true" />
           {t("ask_question", "Ask a question")}
@@ -43,30 +44,30 @@ export default function AnonymousIntro() {
       </PublicHero>
       <div className="mx-auto max-w-5xl px-4 py-14 text-center">
 
-        <div className="mb-16 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+        <Stagger inView className="mb-16 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
           {features.map((card) => (
-            <div key={card.title} className="card flex flex-col items-center text-center">
-              <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent">
+            <StaggerItem key={card.title} className="card card-interactive flex flex-col items-center text-center">
+              <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent/30">
                 <card.icon className="h-7 w-7 text-primary" aria-hidden="true" />
               </span>
               <h2 className="mb-2 text-lg font-semibold text-primary">{card.title}</h2>
               <p className="text-sm text-muted-foreground">{card.description}</p>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
 
         <h2 className="mb-8 text-2xl font-semibold text-primary md:text-3xl">{t("how_it_works")}</h2>
-        <ol className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4">
+        <Stagger as="ol" inView className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4">
           {steps.map((step, index) => (
-            <li key={step.title} className="card text-left">
+            <StaggerItem as="li" key={step.title} className="card text-left">
               <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
                 {index + 1}
               </span>
               <h3 className="mb-1 font-semibold text-foreground">{step.title}</h3>
               <p className="text-sm text-muted-foreground">{step.description}</p>
-            </li>
+            </StaggerItem>
           ))}
-        </ol>
+        </Stagger>
       </div>
     </div>
   );

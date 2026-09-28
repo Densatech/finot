@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AcademicCapIcon, ClipboardDocumentListIcon, FolderIcon, UserGroupIcon } from "@heroicons/react/24/outline";
@@ -44,10 +45,10 @@ export default function CoordinatorCourses() {
           </Card>
         }
       >
-        <ul className="grid gap-4 md:grid-cols-2">
+        <Stagger as="ul" className="grid gap-4 md:grid-cols-2">
           {data.map((sc) => (
-            <li key={sc.id}>
-              <Card className="flex h-full flex-col gap-3">
+            <StaggerItem as="li" key={sc.id}>
+              <Card interactive className="flex h-full flex-col gap-3">
                 <div>
                   <h2 className="text-lg font-semibold text-primary">{sc.course_details.title}</h2>
                   <p className="text-sm text-muted-foreground">
@@ -71,9 +72,9 @@ export default function CoordinatorCourses() {
                   </Link>
                 </div>
               </Card>
-            </li>
+            </StaggerItem>
           ))}
-        </ul>
+        </Stagger>
       </QueryState>
     </div>
   );

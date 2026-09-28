@@ -4,6 +4,7 @@ import { CurrencyDollarIcon, ShieldCheckIcon, UsersIcon } from "@heroicons/react
 import { useAuth } from "@/context/AuthContext";
 import DonationForm from "@/features/donations/DonationForm";
 import PublicHero from "@/components/navigation/PublicHero";
+import { FadeIn, Stagger, StaggerItem } from "@/components/motion";
 
 export default function DonationOutside() {
   const { t } = useTranslation();
@@ -20,20 +21,20 @@ export default function DonationOutside() {
       <PublicHero title={t("support_students_community")} subtitle={t("donation_intro_desc")} />
       <div className="mx-auto max-w-4xl px-4 py-12">
 
-        <div className="mb-10 grid gap-4 md:grid-cols-3">
+        <Stagger inView className="mb-10 grid gap-4 md:grid-cols-3">
           {cards.map((card) => (
-            <div key={card.title} className="card p-5">
-              <span className="mb-3 inline-flex rounded-xl bg-primary p-2.5">
-                <card.icon className="h-6 w-6 text-accent" aria-hidden="true" />
+            <StaggerItem key={card.title} className="card card-interactive p-5">
+              <span className="mb-3 inline-flex rounded-xl bg-accent/25 p-2.5">
+                <card.icon className="h-6 w-6 text-accent-foreground" aria-hidden="true" />
               </span>
               <h2 className="mb-1 font-semibold text-foreground">{card.title}</h2>
               <p className="text-sm text-muted-foreground">{card.description}</p>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
 
-        <div className="card mx-auto max-w-xl border-t-4 border-t-accent">
-          <h2 className="section-title mb-1 text-lg">{t("donate_now", "Donate now")}</h2>
+        <FadeIn inView className="card mx-auto max-w-xl shadow-card">
+          <h2 className="mb-1 text-lg font-semibold text-foreground">{t("donate_now", "Donate now")}</h2>
           {user ? (
             <p className="mb-5 text-sm text-muted-foreground">
               {t("member_donation_hint", "You're signed in — donations made from your dashboard appear in your history.")}{" "}
@@ -45,7 +46,7 @@ export default function DonationOutside() {
             <p className="mb-5 text-sm text-muted-foreground">{t("guest_donation_hint", "No account needed.")}</p>
           )}
           <DonationForm guest={!user} />
-        </div>
+        </FadeIn>
       </div>
     </div>
   );

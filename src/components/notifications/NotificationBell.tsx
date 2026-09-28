@@ -43,7 +43,7 @@ export function NotificationBell() {
 
       <PopoverPanel
         anchor={{ to: "bottom end", gap: 8 }}
-        className="z-50 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-card shadow-elevated"
+        transition className="z-50 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-card shadow-elevated transition origin-top-right duration-150 ease-out data-[closed]:scale-95 data-[closed]:opacity-0"
       >
         {({ close }) => (
           <>

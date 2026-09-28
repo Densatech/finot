@@ -17,7 +17,7 @@ export default function ContactPage() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !message.trim()) {
-      setError(t("field_required", "This field is required."));
+      setError(t("required_field", "This field is required."));
       return;
     }
     setError(null);
@@ -41,8 +41,8 @@ export default function ContactPage() {
           <div className="space-y-4 lg:col-span-2">
             {details.map((d) => (
               <div key={d.label} className="card flex items-center gap-4 p-5">
-                <span className="rounded-xl bg-primary p-3">
-                  <d.icon className="h-6 w-6 text-accent" aria-hidden="true" />
+                <span className="rounded-xl bg-primary/10 p-3">
+                  <d.icon className="h-6 w-6 text-primary" aria-hidden="true" />
                 </span>
                 <div>
                   <p className="text-sm text-muted-foreground">{d.label}</p>

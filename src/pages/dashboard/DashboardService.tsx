@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { useTranslation } from "react-i18next";
 import { BriefcaseIcon, CheckBadgeIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "@/context/AuthContext";
@@ -22,7 +23,7 @@ export default function DashboardService() {
     <div className="space-y-6">
       <SectionHeader
         title={t("service_groups", "Service groups")}
-        description={t("ministry_opportunities")}
+        description={t("service_groups_desc", "Browse the fellowship's ministries and rank your top three.")}
         action={
           selectionOpen ? (
             <Link to="/dashboard/service/select" className="btn-primary">
@@ -82,15 +83,15 @@ export default function DashboardService() {
         isEmpty={!groups.data?.length}
         empty={<Card><EmptyState icon={<BriefcaseIcon className="h-8 w-8" />} title={t("no_service_groups", "No service groups yet")} description="" /></Card>}
       >
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Stagger as="ul" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {groups.data?.map((group) => {
             const key = groupLabelKey(group.name);
             const priority = priorityByGroup.get(group.id);
             return (
-              <li key={group.id}>
+              <StaggerItem as="li" key={group.id}>
                 <Link to={`/dashboard/service/${group.id}`} className="block h-full">
-                  <Card padding="none" hoverable className="flex h-full flex-col overflow-hidden">
-                    <img src={groupImage(group.name)} alt="" className="h-36 w-full object-cover" loading="lazy" decoding="async" />
+                  <Card padding="none" interactive className="group flex h-full flex-col overflow-hidden">
+                    <div className="h-36 overflow-hidden"><img src={groupImage(group.name)} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" decoding="async" /></div>
                     <div className="flex flex-1 flex-col gap-1 p-4">
                       <div className="flex items-start justify-between gap-2">
                         <h2 className="font-semibold text-primary">{key ? t(key) : group.name}</h2>
@@ -111,10 +112,10 @@ export default function DashboardService() {
                     </div>
                   </Card>
                 </Link>
-              </li>
+              </StaggerItem>
             );
           })}
-        </ul>
+        </Stagger>
       </QueryState>
     </div>
   );

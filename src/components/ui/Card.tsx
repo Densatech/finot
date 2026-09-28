@@ -1,48 +1,62 @@
 import type { ReactNode } from "react";
+import { CountUp } from "@/components/motion";
 
 type CardProps = {
   children: ReactNode;
   className?: string;
-  hoverable?: boolean;
+  /** Lifts slightly with a yellow edge on hover — use for clickable cards. */
+  interactive?: boolean;
   padding?: "sm" | "md" | "lg" | "none";
 };
 
 const PADDING = { none: "", sm: "p-3", md: "p-5", lg: "p-7" };
 
-export const Card = ({ children, className = "", hoverable = false, padding = "md" }: CardProps) => (
-  <div
-    className={`rounded-2xl border border-border/70 bg-card shadow-card ${PADDING[padding]} ${
-      hoverable ? "transition-colors hover:border-accent" : ""
-    } ${className}`}
-  >
+export const Card = ({ children, className = "", interactive = false, padding = "md" }: CardProps) => (
+  <div className={`rounded-2xl border border-border bg-card shadow-soft ${PADDING[padding]} ${interactive ? "card-interactive" : ""} ${className}`}>
     {children}
   </div>
 );
 
-/** Card heading with the yellow accent bar; optional link/action on the right. */
-export const CardTitle = ({ children, action }: { children: ReactNode; action?: ReactNode }) => (
-  <div className="mb-4 flex items-center justify-between gap-3">
-    <h2 className="section-title">{children}</h2>
+/** Card heading with an optional action (link/button) on the right. */
+export const CardTitle = ({ children, description, action }: { children: ReactNode; description?: ReactNode; action?: ReactNode }) => (
+  <div className="mb-4 flex items-start justify-between gap-3">
+    <div>
+      <h2 className="section-title">{children}</h2>
+      {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
+    </div>
     {action}
   </div>
 );
 
+export type StatTone = "navy" | "yellow" | "green" | "rose";
+
+const TONES: Record<StatTone, string> = {
+  navy: "bg-primary/10 text-primary",
+  yellow: "bg-accent/25 text-accent-foreground",
+  green: "bg-success/10 text-success",
+  rose: "bg-destructive/10 text-destructive",
+};
+
 type StatsCardProps = {
   title: string;
-  value: ReactNode;
+  value: number | string;
+  suffix?: string;
   icon?: ReactNode;
+  tone?: StatTone;
   hint?: ReactNode;
   className?: string;
 };
 
-export const StatsCard = ({ title, value, icon, hint, className = "" }: StatsCardProps) => (
-  <Card className={`flex items-center gap-4 border-l-4 border-l-accent ${className}`} padding="md">
-    {icon && <div className="rounded-xl bg-primary p-3 text-accent">{icon}</div>}
-    <div className="min-w-0">
-      <p className="text-sm text-muted-foreground">{title}</p>
-      <p className="truncate text-2xl font-bold text-primary">{value}</p>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+export const StatsCard = ({ title, value, suffix, icon, tone = "navy", hint, className = "" }: StatsCardProps) => (
+  <Card className={`card-interactive ${className}`}>
+    <div className="flex items-start justify-between gap-3">
+      <p className="text-sm font-medium text-muted-foreground">{title}</p>
+      {icon && <span className={`rounded-xl p-2 ${TONES[tone]}`}>{icon}</span>}
     </div>
+    <p className="mt-2 truncate text-2xl font-bold tracking-tight text-foreground">
+      <CountUp value={value} suffix={suffix} />
+    </p>
+    {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
   </Card>
 );
 
@@ -50,26 +64,21 @@ type SectionHeaderProps = {
   title: string;
   description?: string;
   action?: ReactNode;
-  icon?: ReactNode;
-  /** Small label above the title */
+  /** Small label above the title (e.g. context like a course's batch) */
   eyebrow?: string;
+  /** Kept for API compatibility; not rendered. */
+  icon?: ReactNode;
 };
 
-/** Navy page header band used at the top of every dashboard page. */
-export const SectionHeader = ({ title, description, action, icon, eyebrow }: SectionHeaderProps) => (
-  <header className="page-hero">
-    <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-start gap-3">
-        {icon && <div className="rounded-xl bg-white/10 p-2.5 text-accent">{icon}</div>}
-        <div>
-          {eyebrow && <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-accent">{eyebrow}</p>}
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{title}</h1>
-          <span className="mt-2 block h-1 w-10 rounded-full bg-accent" aria-hidden="true" />
-          {description && <p className="mt-2 max-w-2xl text-sm text-white/75">{description}</p>}
-        </div>
-      </div>
-      {action && <div className="flex flex-wrap gap-2">{action}</div>}
+/** Page title row: clear heading, supporting text, actions on the right. */
+export const SectionHeader = ({ title, description, action, eyebrow }: SectionHeaderProps) => (
+  <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="min-w-0">
+      {eyebrow && <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-primary/70">{eyebrow}</p>}
+      <h1 className="text-2xl font-bold tracking-tight text-primary">{title}</h1>
+      {description && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>}
     </div>
+    {action && <div className="flex flex-shrink-0 flex-wrap gap-2">{action}</div>}
   </header>
 );
 

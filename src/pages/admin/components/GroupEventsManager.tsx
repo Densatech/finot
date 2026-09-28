@@ -85,7 +85,7 @@ export default function GroupEventsManager({ eventType, groupId }: GroupEventsMa
   const save = async (ev: FormEvent) => {
     ev.preventDefault();
     const next: Record<string, string> = {};
-    const required = t("field_required", "This field is required.");
+    const required = t("required_field", "This field is required.");
     if (!draft.title.trim()) next.title = required;
     if (!draft.description.trim()) next.description = required;
     if (!draft.start) next.start_date = required;

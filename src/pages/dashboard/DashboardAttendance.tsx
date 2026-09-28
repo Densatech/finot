@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import Tabs from "@/components/ui/Tabs";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import { useMyAttendance } from "@/hooks/queries";
 import { Card, SectionHeader, StatsCard } from "@/components/ui/Card";
@@ -73,25 +74,14 @@ export default function DashboardAttendance() {
   return (
     <div className="space-y-6">
       <SectionHeader title={t("tab_attendance", "Attendance")} description={t("tracking_participation")} />
-      <div role="tablist" className="tabs">
-        {(
-          [
-            ["events", t("event_attendance", "Events")],
-            ["courses", t("course_attendance", "Courses")],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            role="tab"
-            type="button"
-            aria-selected={tab === id}
-            onClick={() => setTab(id)}
-            className="tab"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={[
+          { id: "events" as const, label: t("event_attendance", "Events") },
+          { id: "courses" as const, label: t("course_attendance", "Courses") },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
       {tab === "events" ? <EventAttendance /> : <CourseAttendanceTab />}
     </div>
   );

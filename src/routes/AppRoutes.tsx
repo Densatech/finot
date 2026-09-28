@@ -19,6 +19,7 @@ const QuestionList = lazy(() => import("@/pages/qa/QuestionList"));
 const AskQuestion = lazy(() => import("@/pages/qa/AskQuestion"));
 const DonationOutside = lazy(() => import("@/pages/donation/DonationOutside"));
 const DonationSuccess = lazy(() => import("@/pages/donation/DonationSuccess"));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 
 const DashboardLayout = lazy(() => import("@/layouts/DashboardLayout"));
 const DashboardOverview = lazy(() => import("@/pages/dashboard/DashboardOverview"));
@@ -67,6 +68,7 @@ export default function AppRoutes() {
             <Route path="donate/success" element={<DonationSuccess />} />
             {/* Chapa return URL configured on the backend */}
             <Route path="donation/success" element={<DonationSuccess />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
 
           <Route element={<ProtectedRoute />}>
@@ -108,11 +110,10 @@ export default function AppRoutes() {
                 <Route path="courses/:id/attendance" element={<TakeAttendance />} />
                 <Route path="courses/:id/materials" element={<CourseMaterialsPage />} />
               </Route>
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

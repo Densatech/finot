@@ -26,3 +26,8 @@ dist-ssr
 *.sln
 *.sw?
 *.env
+
+# Playwright
+e2e/.tmp/
+e2e/.report/
+test-results/

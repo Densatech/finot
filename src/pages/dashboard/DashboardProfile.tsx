@@ -4,6 +4,7 @@ import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/ui/Card";
 import Avatar from "@/components/ui/Avatar";
+import { FadeIn, Stagger, StaggerItem } from "@/components/motion";
 
 function Row({ label, value }: { label: string; value?: string | number | null }) {
   return (
@@ -23,33 +24,34 @@ export default function DashboardProfile() {
 
   return (
     <div className="space-y-6">
-      <header className="page-hero">
-        <div className="relative z-10 flex flex-col items-center gap-4 sm:flex-row">
-        <Avatar src={p?.profile_image} alt={user.full_name} size="xl" className="ring-4 ring-accent" />
+      <FadeIn>
+      <Card className="flex flex-col items-center gap-5 sm:flex-row" padding="lg">
+        <Avatar src={p?.profile_image} alt={user.full_name} size="xl" className="ring-4 ring-accent/40" />
         <div className="flex-1 text-center sm:text-left">
-          <h1 className="text-2xl font-bold">{user.full_name}</h1>
-          <p className="text-sm text-white/75">{user.email}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-primary">{user.full_name}</h1>
+          <p className="text-sm text-muted-foreground">{user.email}</p>
           <div className="mt-2 flex flex-wrap justify-center gap-2 sm:justify-start">
-            <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white">
+            <span className="rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-semibold text-success">
               {p?.status === "GRADUATED" ? t("graduated", "Graduated") : t("active", "In campus")}
             </span>
             {user.roles
               .filter((r) => r !== "Student")
               .map((r) => (
-                <span key={r} className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
+                <span key={r} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
                   {r}
                 </span>
               ))}
           </div>
         </div>
-        <Link to="/dashboard/profile/edit" className="btn-primary">
+        <Link to="/dashboard/profile/edit" className="btn-secondary">
           <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
           {t("edit_profile", "Edit profile")}
         </Link>
-        </div>
-      </header>
+      </Card>
+      </FadeIn>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <Stagger className="grid gap-6 md:grid-cols-2">
+        <StaggerItem>
         <Card>
           <h2 className="section-title mb-3">{t("personal_information", "Personal information")}</h2>
           <dl className="divide-y divide-border">
@@ -58,6 +60,8 @@ export default function DashboardProfile() {
             <Row label={t("assigned_group", "Service group")} value={user.membership?.service_group_name} />
           </dl>
         </Card>
+        </StaggerItem>
+        <StaggerItem>
         <Card>
           <h2 className="section-title mb-3">{t("campus_information", "Campus information")}</h2>
           <dl className="divide-y divide-border">
@@ -67,6 +71,8 @@ export default function DashboardProfile() {
             <Row label={t("section", "Section")} value={p?.section} />
           </dl>
         </Card>
+        </StaggerItem>
+        <StaggerItem>
         <Card>
           <h2 className="section-title mb-3">{t("contact_information", "Contact information")}</h2>
           <dl className="divide-y divide-border">
@@ -75,6 +81,8 @@ export default function DashboardProfile() {
             <Row label={t("home_address", "Home address")} value={p?.home_address} />
           </dl>
         </Card>
+        </StaggerItem>
+        <StaggerItem>
         <Card>
           <h2 className="section-title mb-3">{t("emergency_contact", "Emergency contact")}</h2>
           <dl className="divide-y divide-border">
@@ -83,7 +91,9 @@ export default function DashboardProfile() {
             <Row label={t("relationship", "Relationship")} value={p?.emergency_relation} />
           </dl>
         </Card>
-        <Card className="md:col-span-2">
+        </StaggerItem>
+        <StaggerItem className="md:col-span-2">
+        <Card>
           <h2 className="section-title mb-3">{t("spiritual_information", "Spiritual information")}</h2>
           <dl className="grid divide-y divide-border md:grid-cols-3 md:divide-y-0">
             <Row label={t("confession_father", "Confession father")} value={p?.confession_father} />
@@ -91,7 +101,8 @@ export default function DashboardProfile() {
             <Row label={t("activities_serving", "Church service")} value={p?.activity_serving} />
           </dl>
         </Card>
-      </div>
+        </StaggerItem>
+      </Stagger>
     </div>
   );
 }

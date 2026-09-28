@@ -21,6 +21,7 @@ import {
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { can } from "@/lib/roles";
+import { m } from "@/components/motion";
 import { ROLES, type AuthUser, type RoleName } from "@/types";
 
 type NavItem = {
@@ -41,6 +42,8 @@ type DashboardSidebarProps = {
   className?: string;
   onNavClick?: () => void;
   showCollapseToggle?: boolean;
+  /** Distinct per mounted sidebar so the animated indicators don't collide. */
+  indicatorId?: string;
 };
 
 const DashboardSidebar = ({
@@ -52,6 +55,7 @@ const DashboardSidebar = ({
   className = "",
   onNavClick,
   showCollapseToggle = true,
+  indicatorId = "sidebar",
 }: DashboardSidebarProps) => {
   const { t } = useTranslation();
 
@@ -107,12 +111,21 @@ const DashboardSidebar = ({
             onClick={onNavClick}
             title={collapsed ? item.label : undefined}
             className={({ isActive }) =>
-              `relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+              `relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors duration-150 ${
                 collapsed ? "justify-center" : ""
-              } ${isActive ? "bg-accent font-semibold text-primary" : "text-white/80 hover:bg-white/10 hover:text-white"}`
+              } ${isActive ? "bg-white/[0.12] font-semibold text-white" : "text-white/70 hover:bg-white/[0.07] hover:text-white"}`
             }
           >
-            <item.icon className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+            {({ isActive }) => (
+              <>
+            {isActive && (
+              <m.span
+                layoutId={`${indicatorId}-active`}
+                className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-accent"
+                transition={{ type: "spring", stiffness: 500, damping: 38 }}
+              />
+            )}
+            <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? "text-accent" : ""}`} aria-hidden="true" />
             {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
             {(item.badge ?? 0) > 0 &&
               (collapsed ? (
@@ -122,6 +135,8 @@ const DashboardSidebar = ({
                   {item.badge! > 99 ? "99+" : item.badge}
                 </span>
               ))}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

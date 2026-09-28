@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Stagger, StaggerItem } from "@/components/motion";
 import type { Donation } from "@/types";
 import { FUND_LABEL_KEYS, PAYMENT_STATUS_STYLES, formatEtb } from "./fund";
 
@@ -6,9 +7,9 @@ import { FUND_LABEL_KEYS, PAYMENT_STATUS_STYLES, formatEtb } from "./fund";
 export default function DonationList({ donations, showReference = false }: { donations: Donation[]; showReference?: boolean }) {
   const { t } = useTranslation();
   return (
-    <ul className="divide-y divide-border">
+    <Stagger as="ul" className="divide-y divide-border">
       {donations.map((d) => (
-        <li key={d.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <StaggerItem as="li" key={d.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="font-medium text-foreground">{t(FUND_LABEL_KEYS[d.fund_category] ?? "other", d.fund_category)}</p>
             <p className="text-sm text-muted-foreground">
@@ -24,8 +25,8 @@ export default function DonationList({ donations, showReference = false }: { don
               {t(`status_${d.payment.status.toLowerCase()}`, d.payment.status)}
             </span>
           </div>
-        </li>
+        </StaggerItem>
       ))}
-    </ul>
+    </Stagger>
   );
 }

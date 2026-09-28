@@ -1,6 +1,9 @@
-import { useState } from "react";
-import { Dialog, DialogPanel } from "@headlessui/react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Suspense, useState } from "react";
+import { Dialog, DialogBackdrop, DialogPanel } from "@headlessui/react";
+import { useLocation, useNavigate } from "react-router-dom";
+import PageLoader from "@/components/ui/PageLoader";
+import RouteErrorBoundary from "@/components/RouteErrorBoundary";
+import { AnimatedOutlet } from "@/components/motion";
 import { useAuth } from "@/context/AuthContext";
 import { useUnreadCount } from "@/hooks/queries";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -12,6 +15,7 @@ const COLLAPSE_KEY = "finot.sidebarCollapsed";
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { data: unreadCount = 0 } = useUnreadCount();
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -55,8 +59,14 @@ export default function DashboardLayout() {
 
       {/* Mobile drawer: focus-trapped, closes on Escape or backdrop tap. */}
       <Dialog open={mobileOpen} onClose={setMobileOpen} className="relative z-50 md:hidden">
-        <div className="fixed inset-0 bg-foreground/40" aria-hidden="true" />
-        <DialogPanel className="fixed inset-y-0 left-0 flex w-[80vw] max-w-[280px]">
+        <DialogBackdrop
+          transition
+          className="fixed inset-0 bg-foreground/40 transition-opacity duration-200 ease-out data-[closed]:opacity-0"
+        />
+        <DialogPanel
+          transition
+          className="fixed inset-y-0 left-0 flex w-[80vw] max-w-[280px] transition duration-300 ease-out data-[closed]:-translate-x-full"
+        >
           <DashboardSidebar
             collapsed={false}
             onToggle={() => setMobileOpen(false)}
@@ -65,6 +75,7 @@ export default function DashboardLayout() {
             user={user}
             onNavClick={() => setMobileOpen(false)}
             showCollapseToggle={false}
+            indicatorId="sidebar-mobile"
             className="flex w-full"
           />
         </DialogPanel>
@@ -75,7 +86,11 @@ export default function DashboardLayout() {
         <main id="dashboard-main-scroll" className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <div className="mx-auto max-w-7xl space-y-6">
             <ProfileCompletionBanner />
-            <Outlet />
+            <RouteErrorBoundary resetKey={pathname}>
+              <Suspense fallback={<PageLoader />}>
+                <AnimatedOutlet />
+              </Suspense>
+            </RouteErrorBoundary>
           </div>
         </main>
       </div>

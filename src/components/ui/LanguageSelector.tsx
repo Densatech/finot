@@ -35,7 +35,7 @@ export default function LanguageSelector({ variant = "nav" }: LanguageSelectorPr
       </MenuButton>
       <MenuItems
         anchor={{ to: "bottom end", gap: 8 }}
-        className="z-50 w-44 rounded-xl border border-border bg-card p-1 shadow-elevated focus:outline-none"
+        transition className="z-50 w-44 rounded-xl border border-border bg-card p-1 shadow-elevated focus:outline-none transition origin-top-right duration-150 ease-out data-[closed]:scale-95 data-[closed]:opacity-0"
       >
         {languages.map((lang) => (
           <MenuItem key={lang.code}>
