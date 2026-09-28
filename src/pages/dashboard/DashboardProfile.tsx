@@ -1,127 +1,97 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import { Card, SectionHeader } from "../../components/ui/Card";
-import { Avatar } from "../../components/ui/Avatar";
-import Badge from "../../components/ui/Badge";
 import { useTranslation } from "react-i18next";
-import { FiUser, FiMail, FiPhone, FiMapPin, FiHeart, FiEdit, FiMessageCircle, FiHome } from "react-icons/fi";
+import { PencilSquareIcon } from "@heroicons/react/24/outline";
+import { useAuth } from "@/context/AuthContext";
+import { Card } from "@/components/ui/Card";
+import Avatar from "@/components/ui/Avatar";
 
-const DashboardProfile = () => {
+function Row({ label, value }: { label: string; value?: string | number | null }) {
+  return (
+    <div className="flex justify-between gap-4 py-2 text-sm">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium text-foreground">{value === null || value === undefined || value === "" ? "—" : value}</dd>
+    </div>
+  );
+}
+
+export default function DashboardProfile() {
   const { t } = useTranslation();
   const { user } = useAuth();
-
-  if (!user) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-muted border-t-primary" />
-      </div>
-    );
-  }
-
-  const { id, full_name, email, gender, profile } = user;
-
-  const sections = [
-    {
-      title: t("personal_information"),
-      icon: <FiUser className="h-5 w-5" />,
-      items: [
-        { label: t("full_name"), value: full_name, icon: <FiUser className="h-4 w-4" /> },
-        { label: t("baptismal_name"), value: profile.baptismal_name, icon: <FiUser className="h-4 w-4" /> },
-        { label: t("gender_label"), value: t(gender?.toLowerCase()), icon: <FiUser className="h-4 w-4" /> },
-        { label: t("department_label"), value: profile.department, icon: <FiUser className="h-4 w-4" /> },
-        { label: t("batch_year"), value: profile.batch, icon: <FiUser className="h-4 w-4" /> },
-        { label: t("status"), value: profile.status, icon: <FiUser className="h-4 w-4" />, badge: true },
-      ],
-    },
-    {
-      title: t("contact_information"),
-      icon: <FiMail className="h-5 w-5" />,
-      items: [
-        { label: t("email"), value: email, icon: <FiMail className="h-4 w-4" /> },
-        { label: t("phone"), value: profile.personal_phone, icon: <FiPhone className="h-4 w-4" /> },
-        { label: t("telegram"), value: profile.telegram, icon: <FiMessageCircle className="h-4 w-4" /> },
-        { label: t("home_address"), value: profile.home_address, icon: <FiMapPin className="h-4 w-4" /> },
-      ],
-    },
-    {
-      title: t("campus_information"),
-      icon: <FiMapPin className="h-5 w-5" />,
-      items: [
-        { label: t("dorm_block_room"), value: profile.dorm_block_room, icon: <FiMapPin className="h-4 w-4" /> },
-        { label: t("assigned_group"), value: profile.assignedGroup, icon: <FiUser className="h-4 w-4" /> },
-      ],
-    },
-    {
-      title: t("spiritual_information"),
-      icon: <FiHome className="h-5 w-5" />,
-      items: [
-        { label: t("confession_father"), value: profile.confession_father, icon: <FiHome className="h-4 w-4" /> },
-        { label: t("previous_church"), value: profile.previous_church, icon: <FiHome className="h-4 w-4" /> },
-        { label: t("activities_serving"), value: profile.activity_serving, icon: <FiHeart className="h-4 w-4" /> },
-      ],
-    },
-    {
-      title: t("emergency_contact"),
-      icon: <FiPhone className="h-5 w-5" />,
-      items: [
-        { label: t("emergency_name"), value: profile.emergency_name, icon: <FiUser className="h-4 w-4" /> },
-        { label: t("phone"), value: profile.emergency_phone, icon: <FiPhone className="h-4 w-4" /> },
-        { label: t("relationship"), value: profile.emergency_relation, icon: <FiHeart className="h-4 w-4" /> },
-      ],
-    },
-  ];
+  if (!user) return null;
+  const p = user.profile;
+  const dorm = p?.dorm_block ? `${t("block", "Block")} ${p.dorm_block}${p.dorm_room ? ` · ${t("room", "Room")} ${p.dorm_room}` : ""}` : null;
 
   return (
     <div className="space-y-6">
-      <SectionHeader title={t("my_profile")} description={t("manage_personal_info")}
-        action={
-          <Link to="/dashboard/profile/edit" className="btn-primary inline-flex items-center gap-2 text-sm">
-            <FiEdit className="h-4 w-4" /> {t("edit_profile")}
-          </Link>
-        }
-      />
-
-      <Card className="border-l-4 border-l-primary">
-        <div className="flex flex-col items-center gap-6 md:flex-row">
-          <Avatar src={profile.profile_image} alt={full_name} size="xl" className="h-24 w-24" />
-          <div className="flex-1 text-center md:text-left">
-            <h2 className="text-lg font-medium text-foreground">{full_name}</h2>
-            <p className="mt-1 text-muted-foreground">{profile.department} {profile.batch && `• ${profile.batch}`}</p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2 md:justify-start">
-              <Badge variant="primary">{t("student_id")}: {id}</Badge>
-              {profile.status === "active" ? <Badge variant="success">{t("active")}</Badge> : <Badge variant="warning">{t("graduated")}</Badge>}
-            </div>
+      <header className="page-hero">
+        <div className="relative z-10 flex flex-col items-center gap-4 sm:flex-row">
+        <Avatar src={p?.profile_image} alt={user.full_name} size="xl" className="ring-4 ring-accent" />
+        <div className="flex-1 text-center sm:text-left">
+          <h1 className="text-2xl font-bold">{user.full_name}</h1>
+          <p className="text-sm text-white/75">{user.email}</p>
+          <div className="mt-2 flex flex-wrap justify-center gap-2 sm:justify-start">
+            <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-semibold text-white">
+              {p?.status === "GRADUATED" ? t("graduated", "Graduated") : t("active", "In campus")}
+            </span>
+            {user.roles
+              .filter((r) => r !== "Student")
+              .map((r) => (
+                <span key={r} className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
+                  {r}
+                </span>
+              ))}
           </div>
         </div>
-      </Card>
+        <Link to="/dashboard/profile/edit" className="btn-primary">
+          <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
+          {t("edit_profile", "Edit profile")}
+        </Link>
+        </div>
+      </header>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {sections.map((section) => (
-          <Card key={section.title}>
-            <div className="mb-4 flex items-center gap-2">
-              <div className="text-primary">{section.icon}</div>
-              <h3 className="text-base font-medium text-foreground">{section.title}</h3>
-            </div>
-            <div className="space-y-4">
-              {section.items.map((item) => (
-                <div key={item.label} className="flex items-start gap-3">
-                  <div className="mt-0.5 text-muted-foreground">{item.icon}</div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{item.label}</p>
-                    {item.badge ? (
-                      <Badge variant={item.value === "active" ? "success" : "default"} size="md" className="mt-1">{t(item.value?.toLowerCase()) || "—"}</Badge>
-                    ) : (
-                      <p className="mt-0.5 text-foreground">{item.value || "—"}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        ))}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <h2 className="section-title mb-3">{t("personal_information", "Personal information")}</h2>
+          <dl className="divide-y divide-border">
+            <Row label={t("full_name", "Full name")} value={user.full_name} />
+            <Row label={t("gender_label", "Gender")} value={user.gender === "M" ? t("male", "Male") : user.gender === "F" ? t("female", "Female") : null} />
+            <Row label={t("assigned_group", "Service group")} value={user.membership?.service_group_name} />
+          </dl>
+        </Card>
+        <Card>
+          <h2 className="section-title mb-3">{t("campus_information", "Campus information")}</h2>
+          <dl className="divide-y divide-border">
+            <Row label={t("batch_year", "Batch year")} value={p?.batch_year} />
+            <Row label={t("department_label", "Department")} value={p?.department} />
+            <Row label={t("dorm_block_room", "Dorm")} value={dorm} />
+            <Row label={t("section", "Section")} value={p?.section} />
+          </dl>
+        </Card>
+        <Card>
+          <h2 className="section-title mb-3">{t("contact_information", "Contact information")}</h2>
+          <dl className="divide-y divide-border">
+            <Row label={t("phone", "Phone")} value={p?.personal_phone} />
+            <Row label={t("telegram", "Telegram")} value={p?.telegram_username} />
+            <Row label={t("home_address", "Home address")} value={p?.home_address} />
+          </dl>
+        </Card>
+        <Card>
+          <h2 className="section-title mb-3">{t("emergency_contact", "Emergency contact")}</h2>
+          <dl className="divide-y divide-border">
+            <Row label={t("emergency_name", "Name")} value={p?.emergency_name} />
+            <Row label={t("phone", "Phone")} value={p?.emergency_phone} />
+            <Row label={t("relationship", "Relationship")} value={p?.emergency_relation} />
+          </dl>
+        </Card>
+        <Card className="md:col-span-2">
+          <h2 className="section-title mb-3">{t("spiritual_information", "Spiritual information")}</h2>
+          <dl className="grid divide-y divide-border md:grid-cols-3 md:divide-y-0">
+            <Row label={t("confession_father", "Confession father")} value={p?.confession_father} />
+            <Row label={t("previous_church", "Previous church")} value={p?.previous_church} />
+            <Row label={t("activities_serving", "Church service")} value={p?.activity_serving} />
+          </dl>
+        </Card>
       </div>
     </div>
   );
-};
-
-export default DashboardProfile;
+}

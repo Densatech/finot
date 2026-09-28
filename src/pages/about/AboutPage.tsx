@@ -1,26 +1,23 @@
-import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  SparklesIcon,
-  UserGroupIcon,
   AcademicCapIcon,
-  HeartIcon,
   BookOpenIcon,
-  MusicalNoteIcon,
-  MegaphoneIcon,
   FilmIcon,
   HandRaisedIcon,
+  HeartIcon,
+  MegaphoneIcon,
+  MusicalNoteIcon,
+  SparklesIcon,
+  UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
-const fadeInUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
-};
-const stagger = { visible: { transition: { staggerChildren: 0.12 } } };
+const GALLERY = ["/images/gibi1.webp", "/images/gibi2.webp", "/images/gibi3.webp", "/images/gibi4.webp"];
 
 export default function AboutPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
 
   const serviceGroups = [
     { name: t("group_choir"), icon: MusicalNoteIcon, desc: t("group_choir_desc") },
@@ -38,240 +35,126 @@ export default function AboutPage() {
     { label: t("stats_graduates"), value: "5000+", icon: HeartIcon },
   ];
 
-  const galleryImages = [
-    "/images/gibi1.jpg",
-    "/images/gibi2.jpg",
-    "/images/gibi3.jpg",
-    "/images/gibi4.jpg",
-    "/images/gibi5.jpg",
+  const services = [
+    t("service_teaching"),
+    t("service_liturgy"),
+    t("service_counseling"),
+    t("service_training"),
+    t("service_fellowship"),
   ];
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Banner */}
-      <section className="relative bg-gradient-to-br from-primary to-primary-light py-20 md:py-28 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(247,223,30,0.08),transparent_60%)]" />
-        <div className="container mx-auto px-4 relative z-10 text-center">
-          <motion.div initial="hidden" animate="visible" variants={stagger}>
-            <motion.span
-              variants={fadeInUp}
-              className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/10 text-white/90 text-sm font-medium backdrop-blur-sm border border-white/10 mb-4"
-            >
-              <SparklesIcon className="h-4 w-4 mr-2 text-accent" />
-              {t("our_story_desc")}
-            </motion.span>
-            <motion.h1 variants={fadeInUp} className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
-              {t("about")} <span className="text-accent">{t("astu_gibi_gubae")}</span>
-            </motion.h1>
-            <motion.p variants={fadeInUp} className="text-lg text-white/80 max-w-2xl mx-auto">
-              {t("fellowship_desc")}
-            </motion.p>
-          </motion.div>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 80" fill="none" className="w-full">
-            <path d="M0 80L60 70C120 60 240 50 360 45C480 40 600 40 720 43C840 46 960 52 1080 55C1200 58 1320 58 1380 58L1440 58V80H0Z" fill="hsl(210, 33%, 98%)" />
-          </svg>
+    <div className="bg-background">
+      <section className="bg-primary">
+        <div className="container mx-auto px-4 py-16 text-center md:py-20">
+          <p className="mb-4 inline-block rounded-full border border-white/20 px-4 py-1.5 text-sm font-medium text-white/85">
+            {t("our_story_desc")}
+          </p>
+          <h1 className="mb-4 text-3xl font-bold text-white sm:text-4xl md:text-5xl">
+            {t("about")} <span className="text-accent">{t("astu_gibi_gubae")}</span>
+          </h1>
+          <p className="mx-auto max-w-2xl text-lg text-white/80">{t("fellowship_desc")}</p>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="py-14 bg-background">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4"
-          >
-            {stats.map((stat) => (
-              <motion.div
-                key={stat.label}
-                variants={fadeInUp}
-                className="card text-center"
-              >
-                <stat.icon className="h-7 w-7 text-accent mx-auto mb-2" />
-                <p className="text-2xl md:text-3xl font-bold text-primary">{stat.value}</p>
-                <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
-              </motion.div>
-            ))}
-          </motion.div>
+      <section className="py-12">
+        <div className="container mx-auto grid grid-cols-2 gap-4 px-4 md:grid-cols-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className="card text-center">
+              <stat.icon className="mx-auto mb-2 h-7 w-7 text-primary" aria-hidden="true" />
+              <p className="text-2xl font-bold text-primary md:text-3xl">{stat.value}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* History */}
-      <section className="py-16 bg-background">
+      <section className="py-12">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-          >
-            <motion.div variants={fadeInUp} className="text-center mb-12">
-              <span className="text-accent font-semibold text-sm uppercase tracking-wider">{t("history")}</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mt-2">
-                {t("years_of_fellowship")}
-              </h2>
-              <div className="w-16 h-1 bg-accent mx-auto rounded-full mt-3" />
-            </motion.div>
-
-            <div className="grid lg:grid-cols-2 gap-10 items-start">
-              {/* Images */}
-              <motion.div variants={fadeInUp} className="grid grid-cols-2 gap-4">
-                {["/images/gibi1.jpg", "/images/gibi2.jpg", "/images/gibi3.jpg", "/images/gibi4.jpg"].map((src, i) => (
-                  <motion.img
-                    key={src}
-                    whileHover={{ scale: 1.03 }}
+          <div className="mb-10 text-center">
+            <span className="text-sm font-semibold uppercase tracking-wider text-primary/70">{t("history")}</span>
+            <h2 className="mt-2 text-3xl font-bold text-foreground md:text-4xl">{t("years_of_fellowship")}</h2>
+          </div>
+          <div className="grid items-start gap-10 lg:grid-cols-2">
+            <ul className="grid grid-cols-2 gap-4">
+              {GALLERY.map((src, i) => (
+                <li key={src} className="aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
+                  <img
                     src={src}
-                    alt={`Gibi Gubae fellowship ${i + 1}`}
-                    className={`rounded-2xl object-cover w-full h-48 sm:h-56 shadow-card ${i === 1 ? 'mt-6' : i === 2 ? '-mt-4' : ''}`}
+                    alt={`${t("astu_gibi_gubae")} ${i + 1}`}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
+                </li>
+              ))}
+            </ul>
+            <div className="space-y-5 leading-relaxed text-muted-foreground">
+              <p>{t("history_p1")}</p>
+              <p>{t("history_p2")}</p>
+              <h3 className="pt-2 text-lg font-semibold text-foreground">{t("currently_providing")}</h3>
+              <ul className="space-y-2">
+                {services.map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <span className="mt-2 h-2 w-2 flex-shrink-0 rounded-full bg-accent" aria-hidden="true" />
+                    {item}
+                  </li>
                 ))}
-              </motion.div>
-
-              {/* Text */}
-              <motion.div variants={fadeInUp} className="space-y-5 text-muted-foreground leading-relaxed">
-                <p>
-                  {t("history_p1")}
-                </p>
-                <p>
-                  {t("history_p2")}
-                </p>
-                <h4 className="text-lg font-semibold text-foreground mt-6 mb-3">{t("currently_providing")}</h4>
-                <ul className="space-y-2">
-                  {[
-                    t("service_teaching"),
-                    t("service_liturgy"),
-                    t("service_counseling"),
-                    t("service_training"),
-                    t("service_fellowship"),
-                  ].map((item) => (
-                    <li key={item} className="flex items-start">
-                      <span className="h-2 w-2 rounded-full bg-accent mt-2 mr-3 flex-shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
+              </ul>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Service Groups */}
-      <section className="py-16 bg-muted">
+      <section className="bg-muted py-14">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-          >
-            <motion.div variants={fadeInUp} className="text-center mb-12">
-              <span className="text-accent font-semibold text-sm uppercase tracking-wider">{t("services")}</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mt-2">{t("service_groups")}</h2>
-              <div className="w-16 h-1 bg-accent mx-auto rounded-full mt-3" />
-            </motion.div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {serviceGroups.map((group) => (
-                <motion.div
-                  key={group.name}
-                  variants={fadeInUp}
-                  whileHover={{ y: -4 }}
-                  className="card hover:shadow-elevated transition-all"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-primary/10 rounded-xl flex-shrink-0">
-                      <group.icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-1">{group.name}</h3>
-                      <p className="text-sm text-muted-foreground">{group.desc}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
+          <div className="mb-10 text-center">
+            <span className="text-sm font-semibold uppercase tracking-wider text-primary/70">{t("services")}</span>
+            <h2 className="mt-2 text-3xl font-bold text-foreground md:text-4xl">{t("service_groups")}</h2>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {serviceGroups.map((group) => (
+              <div key={group.name} className="card flex items-start gap-4">
+                <span className="flex-shrink-0 rounded-xl bg-primary/10 p-3">
+                  <group.icon className="h-6 w-6 text-primary" aria-hidden="true" />
+                </span>
+                <div>
+                  <h3 className="mb-1 font-semibold text-foreground">{group.name}</h3>
+                  <p className="text-sm text-muted-foreground">{group.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Gallery */}
-      <section className="py-16 bg-background">
+      <section className="py-14">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-          >
-            <motion.div variants={fadeInUp} className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-                {t("our_community")}
-              </h2>
-            </motion.div>
-            <motion.div variants={fadeInUp} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {galleryImages.map((src, i) => (
-                <motion.img
-                  key={src}
-                  whileHover={{ scale: 1.05 }}
-                  src={src}
-                  alt={`Community photo ${i + 1}`}
-                  className="rounded-2xl object-cover w-full h-48 shadow-card"
-                />
-              ))}
-            </motion.div>
-          </motion.div>
+          <div className="card mx-auto max-w-3xl text-center">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-primary/70">{t("the_platform")}</p>
+            <h2 className="mb-4 text-2xl font-bold text-foreground">{t("about")} finot</h2>
+            <p className="mb-4 leading-relaxed text-muted-foreground">{t("platform_desc")}</p>
+            <p className="font-semibold text-primary">{t("built_with_love")}</p>
+          </div>
         </div>
       </section>
 
-      {/* About Finot Platform */}
-      <section className="py-16 bg-muted">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeInUp}
-            className="card max-w-3xl mx-auto text-center border-accent/20"
-          >
-            <div className="inline-flex items-center px-3 py-1 bg-accent/10 text-accent-foreground rounded-full text-sm font-medium mb-4">
-              <SparklesIcon className="h-4 w-4 mr-1.5 text-accent" />
-              {t("the_platform")}
+      {!user && (
+        <section className="bg-muted py-14">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="mb-3 text-2xl font-bold text-foreground md:text-3xl">{t("ready_to_join")}</h2>
+            <p className="mx-auto mb-8 max-w-md text-muted-foreground">{t("join_desc")}</p>
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
+              <Link to="/register" className="btn-primary px-8 py-3.5 text-base">
+                {t("get_started")}
+              </Link>
+              <Link to="/" className="btn-outline px-8 py-3.5 text-base">
+                {t("back_to_home")}
+              </Link>
             </div>
-            <h3 className="text-2xl font-bold text-foreground mb-4">{t("about")} finot</h3>
-            <p className="text-muted-foreground leading-relaxed mb-4">
-              {t("platform_desc")}
-            </p>
-            <p className="font-semibold text-primary">
-              {t("built_with_love")}
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-16 bg-background">
-        <div className="container mx-auto px-4 text-center">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeInUp}
-          >
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">{t("ready_to_join")}</h2>
-            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-              {t("join_desc")}
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link to="/register" className="btn-primary text-lg px-8 py-4">{t("get_started")}</Link>
-              <Link to="/" className="btn-outline text-lg px-8 py-4">{t("back_to_home")}</Link>
-            </div>
-          </motion.div>
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

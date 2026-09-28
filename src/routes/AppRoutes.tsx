@@ -1,80 +1,75 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "../layouts/MainLayout";
-import DashboardLayout from "../layouts/DashboardLayout";
-import TeacherQaDashboard from "../pages/admin/CounselorQueue";
-import HomePage from "../pages/home/HomePage";
-import AboutPage from "../pages/about/AboutPage";
-import ContactPage from "../pages/contact/ContactPage";
-import RegisterPage from "../pages/auth/RegisterPage";
-import LoginPage from "../pages/auth/LoginPage";
-import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
-import ResetPasswordConfirmPage from "../pages/auth/ResetPasswordConfirmPage";
-import DashboardOverview from "../pages/dashboard/DashboardOverview";
-import DashboardProfile from "../pages/dashboard/DashboardProfile";
-import DashboardEvents from "../pages/dashboard/DashboardEvents";
-import DashboardAttendance from "../pages/dashboard/DashboardAttendance";
-import DashboardFamily from "../pages/dashboard/DashboardFamily";
-import DashboardService from "../pages/dashboard/DashboardService";
-import DashboardDonations from "../pages/dashboard/DashboardDonations";
-import DashboardQuestions from "../pages/dashboard/DashboardQuestions";
-import DashboardNotifications from "../pages/dashboard/DashboardNotifications";
-import EditProfile from "../pages/profile/EditProfile";
-import AnonymousIntro from "../pages/qa/AnonymousIntro";
-import QuestionList from "../pages/qa/QuestionList";
-import AskQuestion from "../pages/qa/AskQuestion";
-import ResourcesList from "../pages/resources/ResourcesList";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import MainLayout from "@/layouts/MainLayout";
+import ProtectedRoute from "@/features/auth/components/ProtectedRoute";
+import PageLoader from "@/components/ui/PageLoader";
+import ScrollToTop from "@/components/navigation/ScrollToTop";
+import { ROLES } from "@/types";
 
-import {
-  DonationOutside,
-  DonationInside,
-  DonationHistory,
-  DonationProfile,
-  DonationSuccess,
-} from "../pages/donation";
-import ServiceGroupDetail from "../pages/service/ServiceGroupDetail";
-import PreferenceForm from "../pages/service/PreferenceForm";
-import ManageAgeglotDashboard from "../pages/admin/ManageAgeglotDashboard";
-import ProtectedRoute from "../features/auth/components/ProtectedRoute";
-import CourseManagement from "@/pages/course/CoordinatorCourses";
-import TakeAttendance from "@/pages/course/TakeAttendance";
-import EventManagement from "@/pages/admin/EventManagement";
-import CounselorQueue from "../pages/admin/CounselorQueue";
-import ModeratorQueue from "@/pages/admin/ModeratorQueue";
-import CoordinatorCourses from "@/pages/course/CoordinatorCourses";
-import CourseMaterialsPage from "@/pages/course/CourseMaterialsPage";
+// Every page is code-split: visitors only download what they open.
+const HomePage = lazy(() => import("@/pages/home/HomePage"));
+const AboutPage = lazy(() => import("@/pages/about/AboutPage"));
+const ContactPage = lazy(() => import("@/pages/contact/ContactPage"));
+const RegisterPage = lazy(() => import("@/pages/auth/RegisterPage"));
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
+const ResetPasswordConfirmPage = lazy(() => import("@/pages/auth/ResetPasswordConfirmPage"));
+const AnonymousIntro = lazy(() => import("@/pages/qa/AnonymousIntro"));
+const QuestionList = lazy(() => import("@/pages/qa/QuestionList"));
+const AskQuestion = lazy(() => import("@/pages/qa/AskQuestion"));
+const DonationOutside = lazy(() => import("@/pages/donation/DonationOutside"));
+const DonationSuccess = lazy(() => import("@/pages/donation/DonationSuccess"));
+
+const DashboardLayout = lazy(() => import("@/layouts/DashboardLayout"));
+const DashboardOverview = lazy(() => import("@/pages/dashboard/DashboardOverview"));
+const DashboardProfile = lazy(() => import("@/pages/dashboard/DashboardProfile"));
+const EditProfile = lazy(() => import("@/pages/profile/EditProfile"));
+const DashboardEvents = lazy(() => import("@/pages/dashboard/DashboardEvents"));
+const DashboardAttendance = lazy(() => import("@/pages/dashboard/DashboardAttendance"));
+const DashboardFamily = lazy(() => import("@/pages/dashboard/DashboardFamily"));
+const DashboardService = lazy(() => import("@/pages/dashboard/DashboardService"));
+const ServiceGroupDetail = lazy(() => import("@/pages/service/ServiceGroupDetail"));
+const PreferenceForm = lazy(() => import("@/pages/service/PreferenceForm"));
+const DashboardDonations = lazy(() => import("@/pages/dashboard/DashboardDonations"));
+const DonationInside = lazy(() => import("@/pages/donation/DonationInside"));
+const DonationHistory = lazy(() => import("@/pages/donation/DonationHistory"));
+const DonationProfile = lazy(() => import("@/pages/donation/DonationProfile"));
+const DashboardQuestions = lazy(() => import("@/pages/dashboard/DashboardQuestions"));
+const DashboardNotifications = lazy(() => import("@/pages/dashboard/DashboardNotifications"));
+const ResourcesList = lazy(() => import("@/pages/resources/ResourcesList"));
+
+const ManageAgeglotDashboard = lazy(() => import("@/pages/admin/ManageAgeglotDashboard"));
+const EventManagement = lazy(() => import("@/pages/admin/EventManagement"));
+const CounselorQueue = lazy(() => import("@/pages/admin/CounselorQueue"));
+const ModeratorQueue = lazy(() => import("@/pages/admin/ModeratorQueue"));
+const CoordinatorCourses = lazy(() => import("@/pages/course/CoordinatorCourses"));
+const TakeAttendance = lazy(() => import("@/pages/course/TakeAttendance"));
+const CourseMaterialsPage = lazy(() => import("@/pages/course/CourseMaterialsPage"));
 
 export default function AppRoutes() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          {/* public */}
-          <Route index element={<HomePage />} />
-          <Route path="about" element={<AboutPage />} />
-          <Route path="contact" element={<ContactPage />} />
-          <Route path="register" element={<RegisterPage />} />
-          <Route path="login" element={<LoginPage />} />
-          <Route path="forgot-password" element={<ForgotPasswordPage />} />
-          <Route
-            path="password-reset/confirm/:uid/:token"
-            element={<ResetPasswordConfirmPage />}
-          />
-          <Route path="anonymous" element={<AnonymousIntro />} />
-          <Route path="anonymous/questions" element={<QuestionList />} />
-          <Route path="anonymous/ask" element={<AskQuestion />} />
-          <Route path="donate" element={<DonationOutside />} />
-          <Route path="donate/success" element={<DonationSuccess />} />
-          <Route path="donation/success" element={<DonationSuccess />} />
-          <Route path="/contact" element={<ContactPage />} />
+      <ScrollToTop />
+      <Suspense fallback={<PageLoader fullScreen />}>
+        <Routes>
+          <Route element={<MainLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="about" element={<AboutPage />} />
+            <Route path="contact" element={<ContactPage />} />
+            <Route path="register" element={<RegisterPage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="password-reset/confirm/:uid/:token" element={<ResetPasswordConfirmPage />} />
+            <Route path="anonymous" element={<AnonymousIntro />} />
+            <Route path="anonymous/questions" element={<QuestionList />} />
+            <Route path="anonymous/ask" element={<AskQuestion />} />
+            <Route path="donate" element={<DonationOutside />} />
+            <Route path="donate/success" element={<DonationSuccess />} />
+            {/* Chapa return URL configured on the backend */}
+            <Route path="donation/success" element={<DonationSuccess />} />
+          </Route>
 
-          {/* Dashboard routes with persistent layout */}
-          <Route
-            element={
-              <ProtectedRoute
-                allowedRoles={["student", "service_admin", "QA_counselor", "family_admin", "Course_coordinator", "QA_moderator", "Event_manager"]}
-              />
-            }
-          >
+          <Route element={<ProtectedRoute />}>
             <Route path="dashboard" element={<DashboardLayout />}>
               <Route index element={<DashboardOverview />} />
               <Route path="profile" element={<DashboardProfile />} />
@@ -83,38 +78,43 @@ export default function AppRoutes() {
               <Route path="attendance" element={<DashboardAttendance />} />
               <Route path="family" element={<DashboardFamily />} />
               <Route path="service" element={<DashboardService />} />
-              <Route path="service/:id" element={<ServiceGroupDetail />} />
               <Route path="service/select" element={<PreferenceForm />} />
+              <Route path="service/:id" element={<ServiceGroupDetail />} />
               <Route path="donations" element={<DashboardDonations />} />
               <Route path="donations/give" element={<DonationInside />} />
               <Route path="donations/history" element={<DonationHistory />} />
               <Route path="donations/profile" element={<DonationProfile />} />
               <Route path="questions" element={<DashboardQuestions />} />
               <Route path="questions/ask" element={<AskQuestion />} />
-              <Route path="notifications" element={<DashboardNotifications />}/>
+              <Route path="notifications" element={<DashboardNotifications />} />
               <Route path="resources" element={<ResourcesList />} />
-              {/* Admin‑only routes inside dashboard layout */}
-              <Route
-                element={
-                  <ProtectedRoute allowedRoles={["service_admin", "QA_counselor", "Course_coordinator", "QA_moderator", "Event_manager"]} />
 
-                }
-              >
-              <Route path="manage-ageglot" element={<ManageAgeglotDashboard />} />
-              <Route path="courses" element={<CourseManagement/>}/>
-              <Route path="event-management" element={<EventManagement/>}/>
-              <Route path="take-attendance" element={<TakeAttendance/>}/>
-              <Route path="counselor/approve" element={<ModeratorQueue/>}/>
-              <Route path="counselor/queue" element={<CounselorQueue />}/>
-              <Route path="courses/coordinator" element={<CoordinatorCourses/>}/>
-              <Route path="courses/:id/attendance" element={<TakeAttendance/>}/>
-              <Route path="courses/:id/materials" element={<CourseMaterialsPage/>}/>
+              <Route element={<ProtectedRoute roles={[ROLES.SERVICE_ADMIN]} />}>
+                <Route path="manage-ageglot" element={<ManageAgeglotDashboard />} />
               </Route>
+              <Route element={<ProtectedRoute roles={[ROLES.EVENT_MANAGER]} />}>
+                <Route path="event-management" element={<EventManagement />} />
+              </Route>
+              <Route element={<ProtectedRoute roles={[ROLES.QA_COUNSELOR]} />}>
+                <Route path="counselor/queue" element={<CounselorQueue />} />
+              </Route>
+              <Route element={<ProtectedRoute roles={[ROLES.QA_MODERATOR]} />}>
+                <Route path="counselor/approve" element={<ModeratorQueue />} />
+              </Route>
+              <Route element={<ProtectedRoute roles={[ROLES.COURSE_COORDINATOR]} />}>
+                <Route path="courses" element={<CoordinatorCourses />} />
+                <Route path="courses/coordinator" element={<Navigate to="/dashboard/courses" replace />} />
+                <Route path="take-attendance" element={<Navigate to="/dashboard/courses" replace />} />
+                <Route path="courses/:id/attendance" element={<TakeAttendance />} />
+                <Route path="courses/:id/materials" element={<CourseMaterialsPage />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
           </Route>
 
-        </Route>
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

@@ -1,45 +1,33 @@
-import { useTranslation } from "react-i18next";
+type Option = { value: string; label: string };
 
-type Props = {
-  categories: string[];
-  selected: string;
+type FilterBarProps = {
+  options: Option[];
+  value: string;
   onChange: (value: string) => void;
+  label?: string;
 };
 
-export default function FilterBar({
-  categories,
-  selected,
-  onChange,
-}: Props) {
-  const { t } = useTranslation();
+/** Pill-style single-choice filter. */
+export default function FilterBar({ options, value, onChange, label = "Filter" }: FilterBarProps) {
   return (
-    <div className="flex flex-wrap gap-2 mt-4">
-      <button
-        onClick={() => onChange("all")}
-        className={`px-3 py-1 rounded-full text-sm
-        ${
-          selected === "all"
-            ? "bg-yellow-400 text-[#1B3067]"
-            : "bg-[#142850] text-white"
-        }`}
-      >
-        {t("all")}
-      </button>
-
-      {categories.map((cat) => (
-        <button
-          key={cat}
-          onClick={() => onChange(cat)}
-          className={`px-3 py-1 rounded-full text-sm
-          ${
-            selected === cat
-              ? "bg-yellow-400 text-[#1B3067]"
-              : "bg-[#142850] text-white"
-          }`}
-        >
-          {t(`cat_${cat.toLowerCase()}`) || cat}
-        </button>
-      ))}
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
+      {options.map((opt) => {
+        const active = opt.value === value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(opt.value)}
+            className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+              active ? "border-primary bg-primary text-white" : "border-border bg-card text-foreground hover:bg-muted"
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

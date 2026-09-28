@@ -1,70 +1,45 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { FiArrowLeft } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "../../context/AuthContext";
-import { api } from "../../lib/api";
-import type { Donation } from "../../types";
-import EmptyState from "../../components/ui/EmptyState";
+import { ArrowLeftIcon, HeartIcon } from "@heroicons/react/24/outline";
+import { useMyDonations } from "@/hooks/queries";
+import { Card, SectionHeader } from "@/components/ui/Card";
+import EmptyState from "@/components/ui/EmptyState";
+import QueryState from "@/components/ui/QueryState";
+import DonationList from "@/features/donations/DonationList";
 
-const fadeIn = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
-
-const DonationHistory = () => {
+export default function DonationHistory() {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [donations, setDonations] = useState<Donation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      api.getDonations().then((data) => { setDonations(data); setError(null); })
-        .catch(() => setError(t("unable_load_history")))
-        .finally(() => setLoading(false));
-    }
-  }, [user]);
+  const { data: donations = [], isLoading, error, refetch } = useMyDonations();
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Link to="/dashboard/donations" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition">
-          <FiArrowLeft className="h-4 w-4" /> {t("back_to_donations")}
-        </Link>
-      </div>
-
-      <motion.div initial="hidden" animate="visible" variants={fadeIn} className="card max-w-2xl mx-auto">
-        <h1 className="text-xl font-bold text-foreground mb-4">{t("recent_donations")}</h1>
-        {loading ? (
-          <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="skeleton h-20 rounded-xl" />)}</div>
-        ) : error ? (
-          <p className="text-destructive text-sm">{error}</p>
-        ) : donations.length === 0 ? (
-          <EmptyState title={t("no_donations_msg")} description={t("no_donations_yet_msg")} action={
-            <Link to="/dashboard/donations/give" className="btn-primary text-sm">{t("give_donation")}</Link>
-          } />
-        ) : (
-          <div className="space-y-3">
-            {donations.map((d) => (
-              <div key={d.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-4 bg-muted/50 rounded-xl">
-                <div>
-                  <p className="font-medium text-foreground">{t(d.fund_category.toLowerCase().replace(/ /g, "_")) || d.fund_category}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(d.donated_at).toLocaleString()}</p>
-                  <span className={`text-xs font-medium ${d.payment?.status === "COMPLETED" ? "text-success" : "text-warning"}`}>
-                    {d.payment?.status === "COMPLETED" ? t("status_completed") : t("status_pending")}
-                  </span>
-                </div>
-                <div className="sm:text-right">
-                  <p className="text-xl font-bold text-primary">{Number(d.payment?.amount ?? 0).toLocaleString()} <span className="text-xs font-normal text-muted-foreground">{t("etb")}</span></p>
-                  <p className="text-xs text-muted-foreground truncate">{t("reference")}: {d.payment?.transaction_reference ?? "—"}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </motion.div>
+      <Link to="/dashboard/donations" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+        <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
+        {t("back_to_donations", "Back to donations")}
+      </Link>
+      <SectionHeader title={t("donation_history", "Donation history")} />
+      <Card>
+        <QueryState
+          isLoading={isLoading}
+          error={error}
+          onRetry={refetch}
+          isEmpty={donations.length === 0}
+          empty={
+            <EmptyState
+              icon={<HeartIcon className="h-8 w-8" />}
+              title={t("no_donations_yet", "No donations yet")}
+              description={t("no_donations_yet_msg", "When you donate, the details will show up here.")}
+              action={
+                <Link to="/dashboard/donations/give" className="btn-primary">
+                  {t("give_donation", "Give a donation")}
+                </Link>
+              }
+            />
+          }
+        >
+          <DonationList donations={donations} showReference />
+        </QueryState>
+      </Card>
     </div>
   );
-};
-
-export default DonationHistory;
+}

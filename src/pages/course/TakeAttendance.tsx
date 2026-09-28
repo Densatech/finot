@@ -1,375 +1,230 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeftIcon, CheckCircleIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { ArrowLeftIcon, CalendarDaysIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { useCourseSessions, useSemesterCourse } from "@/hooks/queries";
+import { courseApi } from "@/lib/api";
+import { getErrorMessage, getFieldErrors } from "@/lib/errors";
+import { qk } from "@/lib/queryClient";
+import type { CourseAttendanceStatus } from "@/types";
+import { Card, SectionHeader } from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import EmptyState from "@/components/ui/EmptyState";
+import Modal from "@/components/ui/Modal";
+import QueryState from "@/components/ui/QueryState";
+import { TextField } from "@/components/ui/Field";
 
-import Spinner from "../../components/ui/Spinner";
-import { api } from "../../lib/api";
-import { useAuth } from "../../context/AuthContext";
-import { sanitizeUuid } from "../../lib/utils";
+const STATUSES: CourseAttendanceStatus[] = ["PRESENT", "ABSENT", "EXCUSED"];
 
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
-
-interface Student {
-  id: string;
-  full_name: string;
-  email?: string;
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-interface SemesterCourse {
-  id: string;
-  curriculum: { title: string; code: string };
-  academic_year: string;
-  semester: number;
-}
-
-interface CourseSession {
-  id: string;
-  date: string;  // ← CORRECT - backend uses "date"
-  topic: string | null;
-  teacher_name: string | null;
-}
-
-const TakeAttendance = () => {
-  const { id: semesterCourseId } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
-  const sessionIdParam = searchParams.get("session");
-  const navigate = useNavigate();
+export default function TakeAttendance() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { id } = useParams();
+  const queryClient = useQueryClient();
+  const course = useSemesterCourse(id);
+  const sessions = useCourseSessions(id);
+  const sorted = [...(sessions.data ?? [])].sort((a, b) => b.date.localeCompare(a.date));
 
-  const [course, setCourse] = useState<SemesterCourse | null>(null);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [sessions, setSessions] = useState<CourseSession[]>([]);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(sessionIdParam);
-  const [selectedSessionDetails, setSelectedSessionDetails] = useState<CourseSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!sessionId && sorted.length) setSessionId(sorted[0].id);
+  }, [sessionId, sorted]);
+
+  const roster = useQuery({
+    queryKey: qk.roster(sessionId ?? ""),
+    queryFn: () => courseApi.roster(sessionId!),
+    enabled: !!sessionId,
+  });
+  const [marks, setMarks] = useState<Record<number, CourseAttendanceStatus>>({});
+  useEffect(() => {
+    if (roster.data) setMarks(Object.fromEntries(roster.data.map((r) => [r.student_id, r.status ?? "PRESENT"])));
+  }, [roster.data]);
+  const [saving, setSaving] = useState(false);
+
+  // New session form
+  const [creating, setCreating] = useState(false);
+  const [newDate, setNewDate] = useState(today());
+  const [topic, setTopic] = useState("");
+  const [teacher, setTeacher] = useState("");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  
-  // Attendance state: { studentId: { status, remarks } }
-  const [attendanceData, setAttendanceData] = useState<Record<string, { status: string; remarks: string }>>({});
-  // Before making API call
-  // Fetch course, students, and sessions
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!semesterCourseId) return;
-      
-      // Validate UUID before proceeding
-      const validCourseId = sanitizeUuid(semesterCourseId);
-      if (!validCourseId) {
-        toast.error(t("invalid_course_id"));
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
-      try {
-        // Get semester course details
-        const courses = await api.getSemesterCourses();
-        const foundCourse = courses.find((c: any) => c.id === semesterCourseId);
-        setCourse(foundCourse || null);
 
-        // Note: We'll fetch roster AFTER session is selected, not here
-        // For now, just set empty students array
-        setStudents([]);
-
-        // Get sessions for session dropdown
-        const sessionsData = await api.getCourseSessions(semesterCourseId);
-        setSessions(sessionsData);
-        
-        // If sessionId from URL, find and set it
-        if (sessionIdParam) {
-          const foundSession = sessionsData.find((s: any) => s.id === sessionIdParam);
-          if (foundSession) {
-            setSelectedSessionDetails(foundSession);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch data", error);
-        toast.error(t("failed_to_load_data"));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [semesterCourseId, sessionIdParam]);
-
-  // When session is selected, fetch roster and update details
-  useEffect(() => {
-    if (selectedSessionId) {
-      const session = sessions.find(s => s.id === selectedSessionId);
-      setSelectedSessionDetails(session || null);
-      
-      // Fetch roster for this session
-      const fetchRoster = async () => {
-        try {
-          const rosterData = await api.getSessionRoster(selectedSessionId);
-          const studentList = rosterData.roster.map((student: any) => ({
-            id: student.student_id,
-            full_name: `${student.first_name} ${student.last_name}`,
-            email: "", // Add placeholder email since roster doesn't provide it
-          }));
-          setStudents(studentList);
-          
-          // Initialize attendance data with existing status from roster
-          const initialData: Record<string, { status: string; remarks: string }> = {};
-          rosterData.roster.forEach((student: any) => {
-            initialData[student.student_id] = {
-              status: student.status || "PRESENT",
-              remarks: "",
-            };
-          });
-          setAttendanceData(initialData);
-        } catch (error) {
-          console.error("Failed to fetch roster", error);
-          toast.error(t("failed_to_load_roster"));
-        }
-      };
-      
-      fetchRoster();
-    } else {
-      setSelectedSessionDetails(null);
-      setStudents([]);
-    }
-  }, [selectedSessionId, sessions]);
-
-  const handleStatusChange = (studentId: string, status: string) => {
-    setAttendanceData((prev) => ({
-      ...prev,
-      [studentId]: { ...prev[studentId], status },
-    }));
-  };
-
-  const handleRemarkChange = (studentId: string, remarks: string) => {
-    setAttendanceData((prev) => ({
-      ...prev,
-      [studentId]: { ...prev[studentId], remarks },
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const createSession = async (e: FormEvent) => {
     e.preventDefault();
-    if (!selectedSessionId) {
-      toast.error(t("select_session_first"));
-      return;
-    }
-    
+    if (!id) return;
     setSubmitting(true);
+    setFormErrors({});
     try {
-      const records = students.map((student) => ({
-        student_id: student.id,  // ✅ CORRECT - backend expects "student_id"
-        status: attendanceData[student.id]?.status || "PRESENT",
-      }));
-      
-      console.log("Submitting attendance:", { sessionId: selectedSessionId, records }); // Debug log
-      
-      await api.bulkMarkAttendance(selectedSessionId, records);
-      toast.success(t("attendance_saved_success"));
-      navigate("/dashboard/courses");
-    } catch (error: any) {
-      console.error("Failed to save attendance", error);
-      console.error("Error response:", error.response?.data);  // Debug log
-      
-      // Handle specific error for non-enrolled students
-      if (error.response?.data?.invalid_student_ids) {
-        toast.error(t("some_students_not_enrolled"));
-      } else if (error.response?.data?.detail) {
-        toast.error(error.response.data.detail);
-      } else {
-        toast.error(t("failed_to_save_attendance"));
-      }
+      const session = await courseApi.createSession({ semester_course: id, date: newDate, topic: topic.trim() || undefined, teacher_name: teacher.trim() || undefined });
+      await queryClient.invalidateQueries({ queryKey: qk.sessions(id) });
+      setSessionId(session.id);
+      setCreating(false);
+      setTopic("");
+      setTeacher("");
+      toast.success(t("session_created_success", "Session created."));
+    } catch (err) {
+      const fields = getFieldErrors(err);
+      if (Object.keys(fields).length) setFormErrors({ date: fields.non_field_errors ?? fields.date ?? Object.values(fields)[0] });
+      else toast.error(getErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "PRESENT":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "ABSENT":
-        return "bg-red-100 text-red-700 border-red-200";
-      case "EXCUSED":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      default:
-        return "bg-gray-100 text-gray-700";
+  const save = async () => {
+    if (!sessionId) return;
+    setSaving(true);
+    try {
+      const result = await courseApi.bulkMark(
+        sessionId,
+        Object.entries(marks).map(([studentId, status]) => ({ student_id: Number(studentId), status })),
+      );
+      await queryClient.invalidateQueries({ queryKey: qk.roster(sessionId) });
+      toast.success(`${t("attendance_saved_success", "Attendance saved.")} (${result.created + result.updated})`);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="h-8 w-8" />
-      </div>
-    );
-  }
-
-  if (!course) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">{t("course_not_found")}</p>
-        <Link to="/dashboard/courses" className="btn-primary mt-4 inline-block">
-          {t("back_to_courses")}
-        </Link>
-      </div>
-    );
-  }
+  const setAll = (status: CourseAttendanceStatus) =>
+    setMarks((prev) => Object.fromEntries(Object.keys(prev).map((k) => [k, status])));
 
   return (
-    <div className="p-4 md:p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={fadeIn}
-        className="flex items-center gap-4 mb-6"
-      >
-        <Link
-          to="/dashboard/courses"
-          className="p-2 rounded-lg hover:bg-muted transition text-muted-foreground"
-        >
-          <ArrowLeftIcon className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("take_attendance")}</h1>
-          <p className="text-sm text-muted-foreground">
-            {course.curriculum?.title} - {t("year")} {course.academic_year} • {t("semester")} {course.semester}
-          </p>
-        </div>
-      </motion.div>
+    <div className="space-y-5">
+      <Link to="/dashboard/courses" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+        <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
+        {t("back_to_courses", "Back to courses")}
+      </Link>
 
-      {/* Form */}
-      <motion.form
-        initial="hidden"
-        animate="visible"
-        variants={fadeIn}
-        onSubmit={handleSubmit}
-        className="space-y-6"
-      >
-        {/* Session Selection */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-foreground mb-4">{t("select_session")}</h2>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              {t("session")} *
-            </label>
-            <select
-              value={selectedSessionId || ""}
-              onChange={(e) => setSelectedSessionId(e.target.value)}
-              className="input w-full"
-              required
-            >
-              <option value="">{t("select_session_option")}</option>
-              {sessions.map((session) => (
-                <option key={session.id} value={session.id}>
-                  {new Date(session.date).toLocaleDateString()} - {session.topic || t("no_topic")}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Show session details if selected */}
-          {selectedSessionDetails && (
-            <div className="mt-3 p-3 bg-muted/30 rounded-lg">
-              <p className="text-sm">
-                <span className="font-medium">{t("date")}:</span> {new Date(selectedSessionDetails.date).toLocaleDateString()}
-              </p>
-              {selectedSessionDetails.topic && (
-                <p className="text-sm mt-1">
-                  <span className="font-medium">{t("topic")}:</span> {selectedSessionDetails.topic}
-                </p>
-              )}
-              {selectedSessionDetails.teacher_name && (
-                <p className="text-sm mt-1">
-                  <span className="font-medium">{t("teacher")}:</span> {selectedSessionDetails.teacher_name}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Students List - only show if session selected */}
-        {selectedSessionId && (
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">{t("students")}</h2>
-              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <UserGroupIcon className="h-4 w-4" />
-                {students.length} {t("students")}
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {students.map((student) => (
-                <div
-                  key={student.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-muted/30 rounded-lg"
-                >
-                  <div className="flex-1">
-                    <span className="font-medium text-foreground">{student.full_name}</span>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    {/* Status Dropdown */}
-                    <select
-                      value={attendanceData[student.id]?.status || "PRESENT"}
-                      onChange={(e) => handleStatusChange(student.id, e.target.value)}
-                      className={`text-sm px-3 py-1.5 rounded-lg border ${getStatusColor(attendanceData[student.id]?.status || "PRESENT")} focus:outline-none`}
-                    >
-                      <option value="PRESENT">{t("present")}</option>
-                      <option value="ABSENT">{t("absent")}</option>
-                      <option value="EXCUSED">{t("excused")}</option>
-                    </select>
-
-                    {/* Remark Input (shown for ABSENT or EXCUSED) */}
-                    {(attendanceData[student.id]?.status === "ABSENT" || attendanceData[student.id]?.status === "EXCUSED") && (
-                      <input
-                        type="text"
-                        value={attendanceData[student.id]?.remarks || ""}
-                        onChange={(e) => handleRemarkChange(student.id, e.target.value)}
-                        placeholder={t("reason_optional")}
-                        className="text-sm px-3 py-1.5 rounded-lg border border-border bg-white focus:outline-none focus:ring-1 focus:ring-primary w-40"
-                      />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      <QueryState isLoading={course.isLoading} error={course.error} onRetry={course.refetch}>
+        {course.data && (
+          <SectionHeader
+            eyebrow={`${t("batch", "Batch")} ${course.data.batch_year} · ${course.data.academic_year} · ${t("semester", "Semester")} ${course.data.semester}`}
+            title={course.data.course_details.title}
+            action={
+              <Button onClick={() => setCreating(true)}>
+                <PlusIcon className="h-4 w-4" aria-hidden="true" />
+                {t("create_session", "New session")}
+              </Button>
+            }
+          />
         )}
+      </QueryState>
 
-        {/* Submit Button */}
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={submitting || !selectedSessionId}
-            className="btn-primary flex-1 flex items-center justify-center gap-2"
-          >
-            {submitting ? (
-              <Spinner size="h-4 w-4" />
-            ) : (
-              <>
-                <CheckCircleIcon className="h-4 w-4" />
-                {t("save_attendance")}
-              </>
-            )}
-          </button>
-          <Link
-            to="/dashboard/courses"
-            className="btn-outline px-6"
-          >
-            {t("cancel")}
-          </Link>
+      <QueryState
+        isLoading={sessions.isLoading}
+        error={sessions.error}
+        onRetry={sessions.refetch}
+        isEmpty={sorted.length === 0}
+        empty={
+          <Card>
+            <EmptyState
+              icon={<CalendarDaysIcon className="h-8 w-8" />}
+              title={t("no_sessions_yet", "No sessions yet")}
+              description={t("create_first_session", "Create the first class session to take attendance.")}
+            />
+          </Card>
+        }
+      >
+        <div className="grid gap-5 lg:grid-cols-3">
+          <Card padding="none" className="lg:col-span-1">
+            <h2 className="rounded-t-2xl bg-primary px-4 py-3 text-sm font-semibold text-white">{t("course_sessions", "Sessions")}</h2>
+            <ul className="max-h-[28rem] overflow-y-auto">
+              {sorted.map((s) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSessionId(s.id)}
+                    className={`w-full border-l-4 px-4 py-3 text-left text-sm hover:bg-muted ${s.id === sessionId ? "border-accent bg-primary/5 font-semibold text-primary" : "border-transparent text-foreground"}`}
+                  >
+                    {new Date(s.date).toLocaleDateString()}
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {s.topic || t("no_topic", "No topic")}
+                      {s.teacher_name ? ` · ${s.teacher_name}` : ""}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          <Card className="space-y-4 lg:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="section-title">{t("mark_attendance", "Attendance")}</h2>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setAll("PRESENT")}>
+                  {t("mark_all_present", "All present")}
+                </Button>
+                <Button variant="outline" onClick={() => setAll("ABSENT")}>
+                  {t("mark_all_absent", "All absent")}
+                </Button>
+              </div>
+            </div>
+            <QueryState
+              isLoading={roster.isLoading}
+              error={roster.error}
+              onRetry={roster.refetch}
+              isEmpty={!roster.data?.length}
+              empty={<p className="py-6 text-center text-sm text-muted-foreground">{t("no_students_enrolled", "No students are enrolled in this course yet.")}</p>}
+            >
+              <ul className="divide-y divide-border">
+                {roster.data?.map((r) => (
+                  <li key={r.student_id} className="flex flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                    <span className="font-medium text-foreground">
+                      {[r.first_name, r.last_name].filter(Boolean).join(" ") || r.username}
+                    </span>
+                    <div className="flex gap-1" role="radiogroup" aria-label={r.username}>
+                      {STATUSES.map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          role="radio"
+                          aria-checked={marks[r.student_id] === st}
+                          onClick={() => setMarks((m) => ({ ...m, [r.student_id]: st }))}
+                          className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${
+                            marks[r.student_id] === st ? "border-primary bg-primary text-white" : "border-border bg-card text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {t(st.toLowerCase(), st)}
+                        </button>
+                      ))}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex justify-end">
+                <Button onClick={save} loading={saving}>
+                  {t("save_attendance", "Save attendance")}
+                </Button>
+              </div>
+            </QueryState>
+          </Card>
         </div>
-      </motion.form>
+      </QueryState>
+
+      <Modal open={creating} onClose={() => setCreating(false)} title={t("create_new_session", "New session")}>
+        <form id="session-form" onSubmit={createSession} className="space-y-4">
+          <TextField label={t("session_date", "Date")} type="date" required value={newDate} onChange={(e) => setNewDate(e.target.value)} error={formErrors.date} />
+          <TextField label={t("topic_optional", "Topic (optional)")} value={topic} onChange={(e) => setTopic(e.target.value)} />
+          <TextField label={t("teacher_name_optional", "Teacher (optional)")} value={teacher} onChange={(e) => setTeacher(e.target.value)} hint={t("teacher_name_help", "Guest teacher for this session.")} />
+        </form>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setCreating(false)}>
+            {t("cancel", "Cancel")}
+          </Button>
+          <Button type="submit" form="session-form" loading={submitting}>
+            {submitting ? t("creating", "Creating…") : t("create", "Create")}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
-};
-
-export default TakeAttendance;
+}

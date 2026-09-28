@@ -1,183 +1,163 @@
-import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useState, type FormEvent } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import Swal from "sweetalert2";
-import { api } from "../../lib/api";
-import { useAuth } from "../../context/AuthContext";
-import { Question } from "../../types";
+import { useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { ArrowLeftIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { useAuth } from "@/context/AuthContext";
+import { qaApi } from "@/lib/api";
+import { getErrorMessage, getFieldErrors } from "@/lib/errors";
+import { QA_CATEGORIES, type QACategory } from "@/types";
+import { SelectField, TextAreaField, TextField } from "@/components/ui/Field";
+import Button from "@/components/ui/Button";
+import { SectionHeader } from "@/components/ui/Card";
+import PublicHero from "@/components/navigation/PublicHero";
 
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
+type Visibility = "PUBLIC" | "PRIVATE";
 
-const AskQuestion = () => {
+export default function AskQuestion() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const categories = [
-    { id: "Academic", name: t("cat_academic") },
-    { id: "Spiritual", name: t("cat_spiritual") },
-    { id: "Family", name: t("cat_family") },
-    { id: "Personal", name: t("cat_personal") },
-    { id: "Other", name: t("cat_other") },
-  ];
-
-  const questionTypeOptions = [
-    { id: "public", name: t("public") },
-    { id: "private", name: t("private") },
-  ];
-
-  const { user } = useAuth();
-  const [questionType, setQuestionType] = useState<"public" | "private">("public");
-  const [nickname, setNickname] = useState("");
-  const [category, setCategory] = useState<Question["category"] | "">("");
-  const [question, setQuestion] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Detect if we're inside the dashboard
+  const queryClient = useQueryClient();
   const isDashboard = location.pathname.startsWith("/dashboard");
   const backRoute = isDashboard ? "/dashboard/questions" : "/anonymous/questions";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const [visibility, setVisibility] = useState<Visibility>("PUBLIC");
+  const [nickname, setNickname] = useState("");
+  const [category, setCategory] = useState<QACategory | "">("");
+  const [body, setBody] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
-    if (!category) {
-      Swal.fire({
-        icon: "warning",
-        title: t("missing_fields"),
-        text: t("missing_category"),
-        confirmButtonColor: "hsl(52,94%,54%)",
-      });
-      return;
-    }
-    
-    if (!question) {
-      Swal.fire({
-        icon: "warning",
-        title: t("missing_fields"),
-        text: t("missing_qa_fields"),
-        confirmButtonColor: "hsl(52,94%,54%)",
-      });
-      return;
-    }
-    
-    setIsSubmitting(true);
+    const next: Record<string, string> = {};
+    const required = t("field_required", "This field is required.");
+    if (!category) next.category = required;
+    if (!body.trim()) next.question_body = required;
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
+    setSubmitting(true);
     try {
-      await api.postQuestion({
-        user: user?.id || null,
-        display_name: questionType === "public" ? (nickname.trim() || "Anonymous") : user?.full_name,
-        category: category as Question["category"],
-        question_body: question,
-        visibility: questionType === "public" ? "PUBLIC" : "PRIVATE",  // KEY FIELD
+      await qaApi.ask({
+        display_name: nickname.trim() || t("anonymous", "Anonymous"),
+        category: category as QACategory,
+        question_body: body.trim(),
+        visibility,
       });
-      
-      Swal.fire({
-        icon: "success",
-        title: questionType === "public" ? t("question_posted") : t("private_question_posted"),
-        text: questionType === "public" ? t("question_posted_text") : t("private_question_posted_text"),
-        confirmButtonColor: "hsl(52,94%,54%)",
-      });
-      navigate(backRoute);
-    } catch (error: any) {
-      Swal.fire({
-        icon: "error",
-        title: t("failed"),
-        text: error.message || t("something_went_wrong"),
-        confirmButtonColor: "hsl(52,94%,54%)",
-      });
+      await queryClient.invalidateQueries({ queryKey: ["qa"] });
+      toast.success(
+        visibility === "PUBLIC"
+          ? t("question_posted_text", "Question submitted. It will appear after a moderator approves it.")
+          : t("private_question_posted_text", "Your private question was sent to a counselor."),
+      );
+      navigate(visibility === "PRIVATE" ? "/dashboard/questions?tab=private" : backRoute);
+    } catch (err) {
+      const fields = getFieldErrors(err);
+      if (Object.keys(fields).length) setErrors(fields);
+      else toast.error(getErrorMessage(err));
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
+  const options: { id: Visibility; label: string; description: string }[] = [
+    { id: "PUBLIC", label: t("public", "Public"), description: t("public_q_desc", "Shared with the community after moderation.") },
+    { id: "PRIVATE", label: t("private", "Private"), description: t("private_q_desc", "Only a counselor can read it. Requires signing in.") },
+  ];
+
   return (
-    <div className={isDashboard ? "" : "min-h-screen bg-background py-12 px-4"}>
-      <div className="max-w-xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <Link to={backRoute} className="inline-flex items-center text-primary hover:text-primary-light font-medium text-sm transition">
-            <ArrowLeftIcon className="h-4 w-4 mr-1.5" /> {t("back_to_questions")}
-          </Link>
-        </div>
+    <div className={isDashboard ? "" : "bg-background"}>
+      {!isDashboard && <PublicHero title={t("ask_question", "Ask a question")} subtitle={t("identity_anonymous", "Your identity is never shown publicly.")} />}
+      <div className={`mx-auto max-w-xl space-y-5 ${isDashboard ? "" : "px-4 py-10"}`}>
+        <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+          <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
+          {t("back_to_questions", "Back to questions")}
+        </Link>
+        {isDashboard && (
+          <SectionHeader title={t("ask_question", "Ask a question")} description={t("identity_anonymous", "Your identity is never shown publicly.")} />
+        )}
+        <div className="card border-t-4 border-t-accent">
 
-        <motion.div initial="hidden" animate="visible" variants={fadeIn} className="card">
-          <h1 className="text-xl font-bold text-foreground mb-1">{t("ask_question")}</h1>
-          <p className="text-sm text-muted-foreground mb-6">{t("identity_anonymous")}</p>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Question Type Toggle */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">{t("question_type")} *</label>
-              <div className="flex gap-3">
-                {questionTypeOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setQuestionType(option.id as "public" | "private")}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
-                      questionType === option.id
-                        ? "bg-primary text-white shadow-md"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <fieldset>
+              <legend className="mb-1.5 text-sm font-medium text-foreground">{t("question_type", "Question type")}</legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {options.map((opt) => (
+                  <label
+                    key={opt.id}
+                    className={`cursor-pointer rounded-xl border p-3 text-sm ${
+                      visibility === opt.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted"
                     }`}
                   >
-                    {option.name}
-                  </button>
+                    <input
+                      type="radio"
+                      name="visibility"
+                      value={opt.id}
+                      checked={visibility === opt.id}
+                      onChange={() => setVisibility(opt.id)}
+                      className="sr-only"
+                    />
+                    <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                      {opt.id === "PRIVATE" && <LockClosedIcon className="h-4 w-4" aria-hidden="true" />}
+                      {opt.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">{opt.description}</span>
+                  </label>
                 ))}
               </div>
-            </div>
+            </fieldset>
 
-            {questionType === "public" && (
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">{t("nickname_optional")}</label>
-              <input 
-                type="text" 
-                value={nickname} 
-                onChange={(e) => setNickname(e.target.value)} 
-                placeholder={t("nickname_placeholder")} 
-                className="input" 
-              />
-            </div>
-          )}
-
-          {/* Category - Show for BOTH public AND private */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">{t("category")} *</label>
-            <select 
-              value={category} 
-              onChange={(e) => setCategory(e.target.value as Question["category"] | "")} 
-              className="input"
-            >
-              <option value="">{t("select_category")}</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-
-            {/* Question Body */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">{t("your_question")} *</label>
-              <textarea 
-                rows={5} 
-                value={question} 
-                onChange={(e) => setQuestion(e.target.value)} 
-                placeholder={t("type_question_here")} 
-                className="input" 
-              />
-            </div>
-
-            <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
-              {isSubmitting ? t("posting") : t("post_question")}
-            </button>
+            {visibility === "PRIVATE" && !user ? (
+              <div className="rounded-xl border border-accent/60 bg-accent/15 p-4 text-sm text-foreground">
+                {t("private_requires_login", "Private questions go straight to a counselor, so you need to sign in first.")}{" "}
+                <Link to="/login" state={{ from: "/dashboard/questions/ask" }} className="font-semibold text-primary hover:underline">
+                  {t("sign_in")}
+                </Link>
+              </div>
+            ) : (
+              <>
+                <TextField
+                  label={t("nickname_optional", "Nickname (optional)")}
+                  value={nickname}
+                  maxLength={100}
+                  onChange={(e) => setNickname(e.target.value)}
+                  error={errors.display_name}
+                  hint={t("nickname_hint", "Leave empty to post as Anonymous.")}
+                />
+                <SelectField
+                  label={t("category", "Category")}
+                  required
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as QACategory)}
+                  error={errors.category}
+                >
+                  <option value="">{t("choose_category", "Choose a category")}</option>
+                  {QA_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {t(`cat_${c.toLowerCase()}`, c)}
+                    </option>
+                  ))}
+                </SelectField>
+                <TextAreaField
+                  label={t("your_question", "Your question")}
+                  required
+                  rows={6}
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  error={errors.question_body}
+                />
+                <Button type="submit" className="w-full" loading={submitting}>
+                  {t("submit_question", "Submit question")}
+                </Button>
+              </>
+            )}
           </form>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
-};
-
-export default AskQuestion;
+}

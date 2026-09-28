@@ -1,97 +1,92 @@
-import {
-  EnvelopeIcon,
-  PhoneIcon,
-  MapPinIcon,
-} from "@heroicons/react/24/outline";
+import { EnvelopeIcon, MapPinIcon, PhoneIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
-import { FaTelegram, FaInstagram, FaTiktok } from "react-icons/fa";
+import { Link } from "react-router-dom";
+import { SITE } from "@/config/site";
 
-const Footer = () => {
+export default function Footer() {
   const { t } = useTranslation();
-  const currentYear = new Date().getFullYear();
+  const year = new Date().getFullYear();
+
+  const links = [
+    { to: "/about", label: t("about") },
+    { to: "/register", label: t("get_started") },
+    { to: "/donate", label: t("donate") },
+    { to: "/anonymous", label: t("anonymous_qa") },
+    { to: "/contact", label: t("contact") },
+  ];
 
   return (
-    <footer id="footer" className="bg-primary text-primary-foreground pt-16 pb-8">
+    <footer className="bg-primary pb-8 pt-12 text-primary-foreground">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
-          {/* About */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <img src="/images/logo.png" alt="finot" className="h-8 w-8" />
-              <h3 className="text-2xl font-bold text-accent">finot</h3>
+        <div className="mb-10 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <img src="/images/logo-192.webp" alt="" className="h-8 w-8" width={32} height={32} loading="lazy" />
+              <span className="text-2xl font-bold text-accent">finot</span>
             </div>
-            <p className="text-white/70 text-sm leading-relaxed">
-              {t("contact_desc")}
-            </p>
+            <p className="text-sm leading-relaxed text-white/75">{t("contact_desc")}</p>
           </div>
 
-          {/* Quick Links */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-accent">{t("quick_links")}</h3>
-            <ul className="space-y-2.5 text-sm">
-              {[
-                { href: "#about", label: t("about") },
-                { href: "#join", label: t("get_started") },
-                { href: "/donate", label: t("donate") },
-                { href: "/anonymous", label: t("anonymous_qa") },
-              ].map((link) => (
-                <li key={link.href}>
-                  <a href={link.href} className="text-white/70 hover:text-accent transition-colors">
-                    {link.label}
-                  </a>
+          <div className="space-y-3">
+            <h2 className="text-base font-semibold text-accent">{t("quick_links")}</h2>
+            <ul className="space-y-2 text-sm">
+              {links.map((l) => (
+                <li key={l.to}>
+                  <Link to={l.to} className="text-white/75 hover:text-accent">
+                    {l.label}
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Contact */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-accent">{t("contact")}</h3>
-            <div className="space-y-3 text-sm">
-              {[
-                { icon: EnvelopeIcon, text: "info@finot.org" },
-                { icon: PhoneIcon, text: "+251 911 223344" },
-                { icon: MapPinIcon, text: "Adama, Ethiopia" },
-              ].map(({ icon: Icon, text }) => (
-                <p key={text} className="flex items-center space-x-3 text-white/70">
-                  <Icon className="h-4 w-4 text-accent flex-shrink-0" />
-                  <span>{text}</span>
-                </p>
-              ))}
-            </div>
+          <div className="space-y-3">
+            <h2 className="text-base font-semibold text-accent">{t("contact")}</h2>
+            <ul className="space-y-2.5 text-sm text-white/75">
+              <li className="flex items-center gap-3">
+                <EnvelopeIcon className="h-4 w-4 flex-shrink-0 text-accent" aria-hidden="true" />
+                <a href={`mailto:${SITE.email}`} className="hover:text-accent">
+                  {SITE.email}
+                </a>
+              </li>
+              <li className="flex items-center gap-3">
+                <PhoneIcon className="h-4 w-4 flex-shrink-0 text-accent" aria-hidden="true" />
+                <a href={`tel:${SITE.phone.replace(/\s/g, "")}`} className="hover:text-accent">
+                  {SITE.phone}
+                </a>
+              </li>
+              <li className="flex items-center gap-3">
+                <MapPinIcon className="h-4 w-4 flex-shrink-0 text-accent" aria-hidden="true" />
+                <span>{SITE.location}</span>
+              </li>
+            </ul>
           </div>
 
-          {/* Social */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-accent">{t("follow_us")}</h3>
-            <div className="flex space-x-3">
-              {[
-                { href: "https://t.me/Astugibigubae", icon: FaTelegram, label: "Telegram" },
-                { href: "https://www.instagram.com/astu_gbigubae", icon: FaInstagram, label: "Instagram" },
-                { href: "https://www.tiktok.com/@astu_gbigubae", icon: FaTiktok, label: "TikTok" },
-              ].map(({ href, icon: Icon, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-white/10 p-2.5 rounded-xl text-white/70 hover:text-accent hover:bg-white/20 transition-all"
-                  aria-label={label}
-                >
-                  <Icon className="h-5 w-5" />
-                </a>
+          <div className="space-y-3">
+            <h2 className="text-base font-semibold text-accent">{t("follow_us")}</h2>
+            <ul className="flex flex-wrap gap-2">
+              {SITE.socials.map((s) => (
+                <li key={s.label}>
+                  <a
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block rounded-lg border border-white/20 px-3 py-1.5 text-sm text-white/80 hover:border-accent hover:text-accent"
+                  >
+                    {s.label}
+                  </a>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-6 text-center text-white/50 text-sm">
-          <p>&copy; {currentYear} finot. {t("all_rights_reserved")}</p>
-          <p className="mt-1">{t("built_with_heart")}</p>
+        <div className="border-t border-white/10 pt-6 text-center text-sm text-white/60">
+          <p>
+            &copy; {year} finot. {t("all_rights_reserved")}
+          </p>
         </div>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}

@@ -1,5 +1,37 @@
 # Finot — Gibi Gubae Spiritual Lifecycle Management System
 
+## Development
+
+**Stack:** React 19, Vite 7, TypeScript, Tailwind, TanStack Query, react-router 7, i18next (en / am / om).
+
+```bash
+npm install
+npm run dev          # http://localhost:5176, proxies /api and /auth to http://localhost:8000
+npm run typecheck && npm run lint && npm test
+npm run build        # requires VITE_API_URL
+```
+
+| Variable | Purpose |
+|---|---|
+| `VITE_API_URL` | Backend origin, e.g. `https://finot.onrender.com`. **Required for production builds** (set it in Vercel). |
+| `VITE_DEV_API_PROXY` | Optional. Dev proxy target (defaults to `http://localhost:8000`). |
+| `VITE_FIREBASE_*` | Optional. Overrides the default Firebase web config used for opt-in push notifications. |
+
+**Code layout:**
+
+| Path | What's there |
+|---|---|
+| `src/lib/api.ts` | Typed API client |
+| `src/lib/axios.ts` | JWT and single-flight token refresh |
+| `src/hooks/queries.ts` | Cached queries |
+| `src/components/ui/*` | Design-system pieces: `SectionHeader` (navy page header), `Tabs`, `Field`, `Button`, `Modal`, `ConfirmDialog`, `QueryState` |
+| `src/features/*` | Domain helpers |
+
+Colours come only from the Tailwind tokens: `primary` (Finot navy) and `accent` (Finot yellow). Avoid hard-coded hex values.
+
+---
+
+
 ## UI/UX Product & Design Documentation
 
 This document combines the **System Design Brief** and the **UX Product Requirement Document (UX-PRD)** for the **Finot** platform.

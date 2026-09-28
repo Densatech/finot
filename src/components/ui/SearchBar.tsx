@@ -1,19 +1,23 @@
-import { useTranslation } from "react-i18next";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 
-type Props = {
+type SearchBarProps = {
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
+  label?: string;
 };
 
-export default function SearchBar({ value, onChange }: Props) {
+export default function SearchBar({ value, onChange, placeholder = "Search…", label = "Search" }: SearchBarProps) {
   return (
-    <div className="w-full">
+    <div className="relative w-full">
+      <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
       <input
-        type="text"
-        placeholder="Search questions..."
+        type="search"
+        aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-2 rounded-lg bg-[#142850] border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
+        placeholder={placeholder}
+        className="input pl-10"
       />
     </div>
   );

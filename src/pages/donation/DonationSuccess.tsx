@@ -1,205 +1,154 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
-import { api } from "../../lib/api";
-import { CheckCircleIcon, XCircleIcon, ArrowLeftIcon, ArrowDownTrayIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
+import { CheckCircleIcon, ClockIcon, PrinterIcon, XCircleIcon } from "@heroicons/react/24/outline";
+import { useAuth } from "@/context/AuthContext";
+import { donationApi } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
+import { qk } from "@/lib/queryClient";
+import { formatEtb } from "@/features/donations/fund";
+import type { DonationReceipt } from "@/types";
+import Spinner from "@/components/ui/Spinner";
 
-const fadeIn = { hidden: { opacity: 0, scale: 0.95 }, visible: { opacity: 1, scale: 1, transition: { duration: 0.4 } } };
+type Phase = "checking" | "success" | "pending" | "failed" | "missing";
 
-interface ReceiptDetails {
-  status?: string;
-  payment_status?: "PENDING" | "COMPLETED" | "FAILED";
-  amount?: number;
-  currency?: string;
-  tx_ref?: string;
-  date?: string;
-  donor_name?: string;
-}
+// The API answers 202 while Chapa still reports "pending" and 503 when the gateway is
+// unreachable; both are retried a few times before telling the donor to check later.
+const MAX_ATTEMPTS = 6;
+const RETRY_MS = 5000;
 
-const DonationSuccess = () => {
+export default function DonationSuccess() {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
-  const txRef = searchParams.get("tx_ref");
+  const [params] = useSearchParams();
+  const txRef = params.get("tx_ref") || params.get("trx_ref");
   const { user } = useAuth();
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error" | "missing">("idle");
-  const [details, setDetails] = useState<ReceiptDetails | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [phase, setPhase] = useState<Phase>(txRef ? "checking" : "missing");
+  const [receipt, setReceipt] = useState<DonationReceipt | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!txRef) { setStatus("missing"); return; }
+    if (!txRef) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
 
-    // The API answers 202 while Chapa still reports the payment as pending and 503 when
-    // the gateway is unreachable; both are retried a few times before giving up.
-    const MAX_ATTEMPTS = 6;
-    const RETRY_MS = 5000;
-
     const verify = async (attempt: number) => {
-      setStatus("loading");
       try {
-        const data = await api.verifyDonation(txRef);
+        const res = await donationApi.verify(txRef);
         if (cancelled) return;
-        if (data?.payment_status === "PENDING") {
-          if (attempt < MAX_ATTEMPTS) { timer = setTimeout(() => verify(attempt + 1), RETRY_MS); return; }
-          setErrorMessage(t("payment_still_pending", "Your payment is still being processed. Please check your donation history in a few minutes."));
-          setStatus("error");
+        setReceipt(res.data);
+        if (res.status === 202 || res.data.payment_status === "PENDING") {
+          if (attempt < MAX_ATTEMPTS) timer = setTimeout(() => verify(attempt + 1), RETRY_MS);
+          else setPhase("pending");
           return;
         }
-        setDetails(data);
-        setStatus("success");
-      } catch (error: any) {
+        setPhase("success");
+        queryClient.invalidateQueries({ queryKey: qk.donations });
+      } catch (err) {
         if (cancelled) return;
-        if (error?.response?.status === 503 && attempt < MAX_ATTEMPTS) {
+        if (isAxiosError(err) && err.response?.status === 503 && attempt < MAX_ATTEMPTS) {
           timer = setTimeout(() => verify(attempt + 1), RETRY_MS);
           return;
         }
-        setErrorMessage(error?.response?.data?.detail || error?.response?.data?.status || error?.message || t("unable_verify_payment"));
-        setStatus("error");
+        if (isAxiosError(err) && err.response?.status === 400 && err.response.data?.payment_status) {
+          setReceipt(err.response.data as DonationReceipt);
+        }
+        setMessage(getErrorMessage(err));
+        setPhase(isAxiosError(err) && err.response?.status === 503 ? "pending" : "failed");
       }
     };
-    verify(1);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [txRef, t]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+    void verify(1);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [txRef, queryClient]);
+
+  const backTo = user ? "/dashboard/donations" : "/";
 
   return (
-    <div className="min-h-screen bg-muted/30 flex items-center justify-center py-12 px-4 print:bg-white print:p-0">
-      
-      {/* Hide navigation and extra UI when printing */}
-      <style>
-        {`
-          @media print {
-            body * { visibility: hidden; }
-            .receipt-container, .receipt-container * { visibility: visible; }
-            .receipt-container { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; border: none !important; }
-            .no-print { display: none !important; }
-          }
-        `}
-      </style>
-
-      <div className="w-full max-w-lg space-y-6">
-        
-        {/* Main Card */}
-        <motion.div initial="hidden" animate="visible" variants={fadeIn} className="receipt-container card p-0 overflow-hidden shadow-xl border-border">
-          
-          {status === "loading" && (
-            <div className="p-12 text-center">
-              <div className="h-12 w-12 mx-auto mb-4 animate-spin rounded-full border-[3px] border-muted border-t-primary" />
-              <p className="text-muted-foreground font-medium">{t("verifying_payment")}</p>
-            </div>
-          )}
-
-          {status === "success" && details && (
-            <div className="bg-card">
-              {/* Receipt Header */}
-              <div className="bg-primary/5 p-8 text-center border-b border-border">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4 ring-4 ring-green-50">
-                  <CheckCircleIcon className="h-8 w-8 text-green-600" />
-                </div>
-                <h1 className="text-2xl font-bold text-foreground mb-1">{t("payment_successful")}</h1>
-                <p className="text-muted-foreground text-sm">{t("thanks_donation")}</p>
-              </div>
-
-              {/* Receipt Body */}
-              <div className="p-8 space-y-6">
-                <div className="text-center pb-6 border-b border-dashed border-border">
-                  <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold mb-1">{t("amount_paid")}</p>
-                  <p className="text-4xl font-black text-primary">
-                    {details.amount?.toFixed(2)} <span className="text-xl text-muted-foreground font-medium">{details.currency || "ETB"}</span>
-                  </p>
-                </div>
-
-                <div className="space-y-4 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("donor_name")}</span>
-                    <span className="font-medium text-foreground text-right">{details.donor_name || (user ? user.full_name : t("generous_donor"))}</span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("date_time")}</span>
-                    <span className="font-medium text-foreground text-right">
-                      {details.date ? new Date(details.date).toLocaleString() : new Date().toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("transaction_ref")}</span>
-                    <span className="font-mono text-xs bg-muted px-2 py-1 rounded text-foreground">{details.tx_ref || txRef}</span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t("status")}</span>
-                    <span className="font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-xs uppercase tracking-wide">{t("paid")}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Receipt Footer */}
-              <div className="bg-muted/30 p-4 text-center text-xs text-muted-foreground border-t border-border">
-                {t("receipt_footer_msg")}
-              </div>
-            </div>
-          )}
-
-          {status === "error" && (
-            <div className="p-12 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-50 rounded-full mb-4">
-                <XCircleIcon className="h-8 w-8 text-red-600" />
-              </div>
-              <h1 className="text-xl font-bold text-foreground mb-2">{t("verification_issue")}</h1>
-              <p className="text-destructive text-sm bg-red-50 p-3 rounded-lg border border-red-100 inline-block">{errorMessage}</p>
-            </div>
-          )}
-
-          {status === "missing" && (
-            <div className="p-12 text-center">
-              <h1 className="text-xl font-bold text-foreground mb-2">{t("missing_reference")}</h1>
-              <p className="text-muted-foreground text-sm">{t("no_tx_ref_found")}</p>
-            </div>
-          )}
-        </motion.div>
-
-        {/* Action Buttons (Not printed) */}
-        {(status === "success" || status === "error" || status === "missing") && (
-          <motion.div initial="hidden" animate="visible" variants={fadeIn} className="no-print space-y-3">
-            {status === "success" && (
-              <button 
-                onClick={handlePrint} 
-                className="w-full btn-outline flex items-center justify-center gap-2 py-3 bg-card border-border shadow-sm hover:bg-muted"
-              >
-                <ArrowDownTrayIcon className="h-5 w-5" />
-                {t("download_print_receipt")}
-              </button>
-            )}
-            
-            <div className="flex gap-3">
-              <Link 
-                to={user ? "/dashboard" : "/"} 
-                className="flex-1 btn-primary py-3 flex items-center justify-center gap-2"
-              >
-                <ArrowLeftIcon className="h-4 w-4" />
-                {user ? t("back_to_dashboard") : t("back_to_home")}
-              </Link>
-              
-              <Link 
-                to={user ? "/dashboard/donations/history" : "/donate"} 
-                className="flex-1 btn-outline bg-card py-3 flex items-center justify-center"
-              >
-                {user ? t("view_all_receipts") : t("donate_again")}
-              </Link>
-            </div>
-          </motion.div>
+    <div className="flex min-h-[70vh] items-center justify-center bg-background px-4 py-12">
+      <div className="card w-full max-w-lg border-t-4 border-t-accent text-center print:border-0 print:shadow-none">
+        {phase === "checking" && (
+          <div className="space-y-3 py-6">
+            <Spinner size="h-8 w-8" className="mx-auto text-primary" />
+            <p className="font-medium text-foreground">{t("verifying_payment", "Confirming your payment…")}</p>
+            <p className="text-sm text-muted-foreground">{t("verifying_payment_hint", "This can take a few seconds.")}</p>
+          </div>
         )}
 
+        {phase === "success" && receipt && (
+          <div className="space-y-5">
+            <CheckCircleIcon className="mx-auto h-14 w-14 text-success" aria-hidden="true" />
+            <div>
+              <h1 className="text-2xl font-bold text-primary">{t("thank_you", "Thank you!")}</h1>
+              <p className="mt-1 text-sm text-muted-foreground">{t("donation_received", "Your donation was received.")}</p>
+            </div>
+            <dl className="divide-y divide-border rounded-xl border border-border text-left text-sm">
+              {[
+                [t("amount", "Amount"), formatEtb(receipt.amount)],
+                [t("donor", "Donor"), receipt.donor_name],
+                [t("date", "Date"), new Date(receipt.date).toLocaleString()],
+                [t("transaction_ref", "Transaction ref"), receipt.tx_ref],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between gap-4 px-4 py-2.5">
+                  <dt className="text-muted-foreground">{label}</dt>
+                  <dd className="break-all text-right font-medium text-foreground">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center print:hidden">
+              <button type="button" onClick={() => window.print()} className="btn-outline">
+                <PrinterIcon className="h-5 w-5" aria-hidden="true" />
+                {t("print_receipt", "Print receipt")}
+              </button>
+              <Link to={backTo} className="btn-secondary">
+                {user ? t("back_to_donations", "Back to donations") : t("back_to_home", "Back to home")}
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {phase === "pending" && (
+          <div className="space-y-4">
+            <ClockIcon className="mx-auto h-14 w-14 text-warning" aria-hidden="true" />
+            <h1 className="text-xl font-bold text-foreground">{t("payment_processing", "Payment still processing")}</h1>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "payment_still_pending",
+                "Chapa hasn't confirmed this payment yet. You'll get an email once it completes — no need to pay again.",
+              )}
+            </p>
+            <Link to={backTo} className="btn-secondary">
+              {t("continue", "Continue")}
+            </Link>
+          </div>
+        )}
+
+        {phase === "failed" && (
+          <div className="space-y-4">
+            <XCircleIcon className="mx-auto h-14 w-14 text-destructive" aria-hidden="true" />
+            <h1 className="text-xl font-bold text-foreground">{t("payment_failed", "Payment not completed")}</h1>
+            <p className="text-sm text-muted-foreground">{message}</p>
+            <Link to={user ? "/dashboard/donations/give" : "/donate"} className="btn-primary">
+              {t("try_again", "Try again")}
+            </Link>
+          </div>
+        )}
+
+        {phase === "missing" && (
+          <div className="space-y-4">
+            <XCircleIcon className="mx-auto h-14 w-14 text-muted-foreground" aria-hidden="true" />
+            <p className="text-sm text-muted-foreground">{t("missing_tx_ref", "No transaction reference was provided.")}</p>
+            <Link to={backTo} className="btn-secondary">
+              {t("continue", "Continue")}
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default DonationSuccess;
+}

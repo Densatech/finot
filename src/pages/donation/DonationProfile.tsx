@@ -1,138 +1,89 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { FiArrowLeft, FiHeart } from "react-icons/fi";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "../../context/AuthContext";
-import { api } from "../../lib/api";
-import type { Donation } from "../../types";
-import { Card } from "../../components/ui/Card";
-import Badge from "../../components/ui/Badge";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { useMyDonations } from "@/hooks/queries";
+import { Card, SectionHeader } from "@/components/ui/Card";
+import QueryState from "@/components/ui/QueryState";
+import DonationList from "@/features/donations/DonationList";
+import { formatEtb, totalGiven } from "@/features/donations/fund";
 
-const fadeIn = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
+const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 
-const DonationProfile = () => {
+export default function DonationProfile() {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [donations, setDonations] = useState<Donation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: donations = [], isLoading, error, refetch } = useMyDonations();
 
-  useEffect(() => {
-    if (user) {
-      api.getDonations(user?.id).then(setDonations).catch(console.error).finally(() => setLoading(false));
-    }
-  }, [user]);
-
-  const totalAmount = donations.reduce((sum, d) => sum + Number(d.payment?.amount ?? 0), 0);
-  const donationCount = donations.length;
-
-  const months = [
-    { key: "jan", label: t("jan") },
-    { key: "feb", label: t("feb") },
-    { key: "mar", label: t("mar") },
-    { key: "apr", label: t("apr") },
-    { key: "may", label: t("may") },
-    { key: "jun", label: t("jun") },
-    { key: "jul", label: t("jul") },
-    { key: "aug", label: t("aug") },
-    { key: "sep", label: t("sep") },
-    { key: "oct", label: t("oct") },
-    { key: "nov", label: t("nov") },
-    { key: "dec", label: t("dec") },
-  ];
-  const monthlyTotals = Array(12).fill(0);
-  donations.forEach((d) => {
-    const month = new Date(d.donated_at).getMonth();
-    monthlyTotals[month] += Number(d.payment?.amount ?? 0);
+  // Only completed payments count as money given.
+  const completed = donations.filter((d) => d.payment.status === "COMPLETED");
+  const total = totalGiven(donations);
+  const year = new Date().getFullYear();
+  const monthly = Array(12).fill(0) as number[];
+  completed.forEach((d) => {
+    const date = new Date(d.donated_at);
+    if (date.getFullYear() === year) monthly[date.getMonth()] += Number(d.payment.amount || 0);
   });
+  const max = Math.max(...monthly, 1);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Link to="/dashboard/donations" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition">
-          <FiArrowLeft className="h-4 w-4" /> {t("back_to_donations")}
-        </Link>
-      </div>
+      <Link to="/dashboard/donations" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
+        <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
+        {t("back_to_donations", "Back to donations")}
+      </Link>
+      <SectionHeader title={t("my_donation_profile", "My giving profile")} />
 
-      <motion.div initial="hidden" animate="visible" variants={fadeIn} className="space-y-6">
-        <div className="flex items-center gap-3">
-          <FiHeart className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold text-foreground">{t("my_donation_profile")}</h1>
+      <QueryState
+        isLoading={isLoading}
+        error={error}
+        onRetry={refetch}
+        isEmpty={completed.length === 0}
+        empty={
+          <Card className="py-8 text-center">
+            <p className="mb-4 text-muted-foreground">{t("no_donations_yet_msg", "No completed donations yet.")}</p>
+            <Link to="/dashboard/donations/give" className="btn-primary">
+              {t("make_first_donation", "Make your first donation")}
+            </Link>
+          </Card>
+        }
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Card className="text-center">
+            <p className="text-sm text-muted-foreground">{t("total_given", "Total given")}</p>
+            <p className="mt-1 text-2xl font-bold text-primary">{formatEtb(total)}</p>
+          </Card>
+          <Card className="text-center">
+            <p className="text-sm text-muted-foreground">{t("number_of_gifts", "Number of gifts")}</p>
+            <p className="mt-1 text-2xl font-bold text-primary">{completed.length}</p>
+          </Card>
+          <Card className="text-center">
+            <p className="text-sm text-muted-foreground">{t("average_gift", "Average gift")}</p>
+            <p className="mt-1 text-2xl font-bold text-primary">{formatEtb(total / completed.length)}</p>
+          </Card>
         </div>
 
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => <div key={i} className="skeleton h-24 rounded-2xl" />)}
+        <Card>
+          <h2 className="section-title mb-3">
+            {t("monthly_giving", "Monthly giving")} · {year}
+          </h2>
+          <div className="flex h-40 items-end gap-1.5" role="img" aria-label={t("monthly_giving", "Monthly giving")}>
+            {monthly.map((value, i) => (
+              <div key={MONTH_KEYS[i]} className="flex flex-1 flex-col items-center gap-1">
+                <div
+                  className="w-full rounded-t-md bg-primary/80"
+                  style={{ height: `${(value / max) * 100}%`, minHeight: value ? 4 : 0 }}
+                  title={`${t(MONTH_KEYS[i])}: ${formatEtb(value)}`}
+                />
+                <span className="text-[10px] text-muted-foreground">{t(MONTH_KEYS[i])}</span>
+              </div>
+            ))}
           </div>
-        ) : donationCount === 0 ? (
-          <Card className="text-center py-8">
-            <p className="text-muted-foreground mb-4">{t("no_donations_yet_msg")}</p>
-            <Link to="/dashboard/donations/give" className="btn-primary text-sm">{t("make_first_donation")}</Link>
-          </Card>
-        ) : (
-          <>
-            {/* Summary cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="text-center">
-                <p className="text-sm text-muted-foreground">{t("total_given")}</p>
-                <p className="text-2xl font-bold text-primary mt-1">{totalAmount.toLocaleString()} {t("etb")}</p>
-              </Card>
-              <Card className="text-center">
-                <p className="text-sm text-muted-foreground">{t("number_of_gifts")}</p>
-                <p className="text-2xl font-bold text-primary mt-1">{donationCount}</p>
-              </Card>
-              <Card className="text-center">
-                <p className="text-sm text-muted-foreground">{t("average_gift")}</p>
-                <p className="text-2xl font-bold text-primary mt-1">{donationCount ? Math.round(totalAmount / donationCount).toLocaleString() : 0} {t("etb")}</p>
-              </Card>
-            </div>
+        </Card>
 
-            {/* Monthly breakdown */}
-            <Card>
-              <h2 className="text-lg font-semibold text-foreground mb-4">{t("monthly_giving")}</h2>
-              <div className="space-y-2">
-                {months.map((month, i) =>
-                  monthlyTotals[i] > 0 && (
-                    <div key={month.key} className="flex items-center gap-3">
-                      <span className="w-10 text-sm text-muted-foreground">{month.label}</span>
-                      <div className="flex-1 bg-muted h-6 rounded-lg overflow-hidden">
-                        <div className="bg-primary h-full rounded-lg transition-all" style={{ width: `${totalAmount ? (monthlyTotals[i] / totalAmount) * 100 : 0}%` }} />
-                      </div>
-                      <span className="text-sm font-medium text-foreground">{monthlyTotals[i].toLocaleString()} {t("etb")}</span>
-                    </div>
-                  )
-                )}
-              </div>
-            </Card>
-
-            {/* Recent donations */}
-            <Card>
-              <h2 className="text-lg font-semibold text-foreground mb-4">{t("recent_donations")}</h2>
-              <div className="space-y-3">
-                {donations.slice(0, 5).map((d) => (
-                  <div key={d.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-xl">
-                    <div>
-                      <p className="font-medium text-foreground">{t(d.fund_category.toLowerCase().replace(/ /g, "_")) || d.fund_category}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(d.donated_at).toLocaleDateString()}</p>
-                      <Badge variant={d.payment?.status === "COMPLETED" ? "success" : "warning"} size="sm" className="mt-1">
-                        {d.payment?.status === "COMPLETED" ? t("status_completed") : t("status_pending")}
-                      </Badge>
-                    </div>
-                    <span className="text-lg font-bold text-primary">{Number(d.payment?.amount ?? 0).toLocaleString()} {t("etb")}</span>
-                  </div>
-                ))}
-              </div>
-              {donations.length > 5 && (
-                <p className="text-sm text-muted-foreground mt-3">{t("more_donations", { count: donations.length - 5 })}</p>
-              )}
-            </Card>
-
-            <p className="text-center text-success italic text-sm">{t("charity_quote")}</p>
-          </>
-        )}
-      </motion.div>
+        <Card>
+          <h2 className="section-title mb-3">{t("recent_donations", "Recent donations")}</h2>
+          <DonationList donations={completed.slice(0, 5)} />
+        </Card>
+      </QueryState>
     </div>
   );
-};
-
-export default DonationProfile;
+}

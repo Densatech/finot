@@ -1,415 +1,176 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  PlusCircleIcon,
-  DocumentIcon,
-  LinkIcon,
-  EyeIcon,
-  TrashIcon,
-  XMarkIcon,
-  FolderIcon,
-} from "@heroicons/react/24/outline";
+import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { FolderIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { useMaterials } from "@/hooks/queries";
+import { materialApi } from "@/lib/api";
+import { getErrorMessage, getFieldErrors } from "@/lib/errors";
+import type { Material, MaterialType } from "@/types";
+import { Card } from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
+import EmptyState from "@/components/ui/EmptyState";
+import Modal from "@/components/ui/Modal";
+import QueryState from "@/components/ui/QueryState";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { TextAreaField, TextField } from "@/components/ui/Field";
+import MaterialList from "@/features/materials/MaterialList";
 
-import Spinner from "../../../components/ui/Spinner";
-import { api } from "../../../lib/api";
-import { useAuth } from "../../../context/AuthContext";
-
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
-
-interface Material {
-  id: number;
-  title: string;
-  description: string | null;
-  material_type: "COURSE" | "SERVICE" | "GENERAL";
-  file: string | null;
-  url: string | null;
-  course?: string | { id: string; title: string };
-  service_group?: number | { id: number; name: string };
-  uploaded_by: { id: number; full_name: string };
-  created_at: string;
-}
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const ACCEPT = ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.mp4";
 
 interface MaterialsManagerProps {
-  materialType: "COURSE" | "SERVICE" | "GENERAL";
-  courseId?: string;  // Required if materialType is COURSE
-  serviceGroupId?: number;  // Required if materialType is SERVICE
-  title?: string;
+  materialType: MaterialType;
+  /** Curriculum (Course) id — required for COURSE materials */
+  courseId?: string;
+  /** Required for SERVICE materials */
+  serviceGroupId?: number;
+  title: string;
   subtitle?: string;
 }
 
-const MaterialsManager = ({ 
-  materialType, 
-  courseId, 
-  serviceGroupId,
-  title,
-  subtitle,
-}: MaterialsManagerProps) => {
+export default function MaterialsManager({ materialType, courseId, serviceGroupId, title, subtitle }: MaterialsManagerProps) {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const confirm = useConfirm();
+  const queryClient = useQueryClient();
+  const params = {
+    type: materialType,
+    ...(materialType === "COURSE" && courseId ? { course: courseId } : {}),
+    ...(materialType === "SERVICE" && serviceGroupId ? { service_group: serviceGroupId } : {}),
+  };
+  const { data = [], isLoading, error, refetch } = useMaterials(params);
 
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showUploadForm, setShowUploadForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  
-  // Form state - all initialized with empty strings to prevent uncontrolled/controlled warnings
-  const [formTitle, setFormTitle] = useState("");
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"file" | "link">("file");
+  const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [uploadType, setUploadType] = useState<"file" | "link">("file");
   const [file, setFile] = useState<File | null>(null);
-  const [linkUrl, setLinkUrl] = useState("");
+  const [url, setUrl] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
-  // Check if user can upload (handle both string and array roles)
-  const userRole = user?.role;
-  const userRoles = user?.role || [];
-  const isSuperAdmin = userRole === "SuperAdmin" || userRoles.includes("SuperAdmin");
-
-  let canUpload = false;
-  if (materialType === "COURSE") {
-    canUpload = isSuperAdmin || userRole === "Course_coordinator" || userRoles.includes("CourseCoordinator");
-  } else if (materialType === "SERVICE") {
-    canUpload = isSuperAdmin || userRole === "service_admin" || userRoles.includes("ServiceAdmin");
-  } else if (materialType === "GENERAL") {
-    canUpload = isSuperAdmin;
-  }
-
-  // Fetch materials
-  const fetchMaterials = async () => {
-    setLoading(true);
-    try {
-      let params: any = { type: materialType };
-      if (materialType === "COURSE" && courseId) {
-        params.course = courseId;
-      }
-      if (materialType === "SERVICE" && serviceGroupId) {
-        params.service_group = serviceGroupId;
-      }
-      const data = await api.getMaterials(params);
-      setMaterials(data);
-    } catch (error) {
-      console.error("Failed to fetch materials", error);
-      toast.error(t("failed_to_load_materials"));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMaterials();
-  }, [materialType, courseId, serviceGroupId]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.size > 50 * 1024 * 1024) {
-        toast.error(t("file_too_large"));
-        return;
-      }
-      setFile(selectedFile);
-    }
-  };
-
-  const resetForm = () => {
-    setFormTitle("");
+  const reset = () => {
+    setName("");
     setDescription("");
     setFile(null);
-    setLinkUrl("");
-    setUploadType("file");
-    setShowUploadForm(false);
+    setUrl("");
+    setErrors({});
+    setMode("file");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const upload = async (e: FormEvent) => {
     e.preventDefault();
-    
-    if (!formTitle.trim()) {
-      toast.error(t("title_required"));
-      return;
-    }
-    
-    if (uploadType === "file" && !file) {
-      toast.error(t("file_required"));
-      return;
-    }
-    
-    if (uploadType === "link" && !linkUrl.trim()) {
-      toast.error(t("link_required"));
-      return;
-    }
-    
-    setSubmitting(true);
-    
-    const formData = new FormData();
-    formData.append("title", formTitle);
-    formData.append("description", description);
-    formData.append("material_type", materialType);
-    
-    if (materialType === "COURSE" && courseId) {
-      formData.append("course", courseId);
-    }
-    if (materialType === "SERVICE" && serviceGroupId) {
-      formData.append("service_group", serviceGroupId.toString());
-    }
-    
-    if (uploadType === "file" && file) {
-      formData.append("file", file);
-    } else if (uploadType === "link" && linkUrl) {
-      formData.append("url", linkUrl);
-    }
-    
+    const next: Record<string, string> = {};
+    if (!name.trim()) next.title = t("title_required", "Title is required.");
+    if (mode === "file" && !file) next.file = t("file_required", "Choose a file.");
+    if (mode === "file" && file && file.size > MAX_FILE_BYTES) next.file = t("file_too_large", "Files must be 50MB or smaller.");
+    if (mode === "link" && !url.trim()) next.url = t("link_required", "Enter a link.");
+    setErrors(next);
+    if (Object.keys(next).length) return;
+
+    const data = new FormData();
+    data.append("title", name.trim());
+    data.append("description", description.trim());
+    data.append("material_type", materialType);
+    if (materialType === "COURSE" && courseId) data.append("course", courseId);
+    if (materialType === "SERVICE" && serviceGroupId) data.append("service_group", String(serviceGroupId));
+    if (mode === "file" && file) data.append("file", file);
+    if (mode === "link") data.append("url", url.trim());
+
+    setSaving(true);
     try {
-      await api.uploadMaterial(formData);
-      toast.success(t("material_uploaded_success"));
-      
-      // Reset form
-      resetForm();
-      
-      // Refresh materials
-      fetchMaterials();
-    } catch (error: any) {
-      console.error("Failed to upload material", error);
-      const errorMsg = error.response?.data?.detail || error.response?.data?.message || t("upload_failed");
-      toast.error(errorMsg);
+      await materialApi.create(data);
+      await queryClient.invalidateQueries({ queryKey: ["materials"] });
+      toast.success(t("material_uploaded_success", "Material uploaded."));
+      setOpen(false);
+      reset();
+    } catch (err) {
+      const fields = getFieldErrors(err);
+      if (Object.keys(fields).length) setErrors(fields);
+      else toast.error(getErrorMessage(err));
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (materialId: number) => {
-    if (!window.confirm(t("confirm_delete_material"))) return;
+  const remove = async (m: Material) => {
+    const ok = await confirm({ title: t("delete", "Delete"), message: t("confirm_delete_material", "Delete this material?"), confirmText: t("delete", "Delete"), danger: true });
+    if (!ok) return;
     try {
-      await api.deleteMaterial(materialId);
-      toast.success(t("material_deleted_success"));
-      fetchMaterials();
-    } catch (error) {
-      console.error("Failed to delete material", error);
-      toast.error(t("failed_to_delete_material"));
+      await materialApi.remove(m.id);
+      await queryClient.invalidateQueries({ queryKey: ["materials"] });
+      toast.success(t("material_deleted_success", "Material deleted."));
+    } catch (err) {
+      toast.error(getErrorMessage(err));
     }
   };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case "COURSE":
-        return <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{t("course_material")}</span>;
-      case "SERVICE":
-        return <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{t("service_material")}</span>;
-      case "GENERAL":
-        return <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{t("general_material")}</span>;
-      default:
-        return null;
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <Spinner size="h-8 w-8" />
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">{title || t("materials")}</h3>
+          <h2 className="section-title mb-3">{title}</h2>
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         </div>
-        {canUpload && (
-          <button
-            onClick={() => setShowUploadForm(!showUploadForm)}
-            className="btn-primary flex items-center gap-2 text-sm"
-          >
-            {showUploadForm ? (
-              <><XMarkIcon className="h-4 w-4" /> {t("cancel")}</>
-            ) : (
-              <><PlusCircleIcon className="h-4 w-4" /> {t("upload_material")}</>
-            )}
-          </button>
-        )}
+        <Button onClick={() => setOpen(true)}>
+          <PlusIcon className="h-4 w-4" aria-hidden="true" />
+          {t("upload_material", "Add material")}
+        </Button>
       </div>
 
-      {/* Upload Form */}
-      {showUploadForm && canUpload && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="card bg-muted/30"
+      <Card>
+        <QueryState
+          isLoading={isLoading}
+          error={error}
+          onRetry={refetch}
+          isEmpty={data.length === 0}
+          empty={<EmptyState icon={<FolderIcon className="h-8 w-8" />} title={t("no_materials_yet", "No materials yet")} description={t("upload_first_material", "Upload the first one.")} />}
         >
-          <h4 className="font-semibold text-foreground mb-4">{t("upload_new_material")}</h4>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">{t("title")} *</label>
-              <input
-                type="text"
-                value={formTitle || ""}
-                onChange={(e) => setFormTitle(e.target.value)}
-                placeholder={t("title_placeholder")}
-                className="input w-full"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">{t("description")}</label>
-              <textarea
-                value={description || ""}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t("description_placeholder")}
-                rows={2}
-                className="input w-full"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">{t("upload_type")} *</label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setUploadType("file")}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
-                    uploadType === "file"
-                      ? "bg-primary text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  <DocumentIcon className="h-4 w-4" />
-                  {t("upload_file")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setUploadType("link")}
-                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
-                    uploadType === "link"
-                      ? "bg-primary text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  <LinkIcon className="h-4 w-4" />
-                  {t("external_link")}
-                </button>
-              </div>
-            </div>
-            
-            {uploadType === "file" ? (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">{t("file")} *</label>
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  accept=".pdf,.doc,.docx,.mp4,.mp3,.jpg,.jpeg,.png"
-                  className="input w-full"
-                />
-                <p className="text-xs text-muted-foreground mt-1">{t("supported_files")}</p>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">{t("link_url")} *</label>
-                <input
-                  type="url"
-                  value={linkUrl || ""}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  placeholder="https://example.com/resource"
-                  className="input w-full"
-                />
-              </div>
-            )}
-            
-            <div className="flex gap-3 pt-2">
-              <button type="submit" disabled={submitting} className="btn-primary flex-1">
-                {submitting ? t("uploading") : t("upload")}
-              </button>
-              <button type="button" onClick={resetForm} className="btn-outline px-4">
-                {t("cancel")}
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      )}
+          <MaterialList materials={data} onDelete={remove} />
+        </QueryState>
+      </Card>
 
-      {/* Materials List */}
-      {materials.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-xl">
-          <FolderIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>{t("no_materials_yet")}</p>
-          {canUpload && (
-            <button
-              onClick={() => setShowUploadForm(true)}
-              className="btn-primary inline-flex items-center gap-2 mt-4 text-sm"
-            >
-              <PlusCircleIcon className="h-4 w-4" />
-              {t("upload_first_material")}
-            </button>
+      <Modal open={open} onClose={() => setOpen(false)} title={t("upload_new_material", "Add material")}>
+        <form id="material-form" onSubmit={upload} className="space-y-4" noValidate>
+          <div role="radiogroup" aria-label={t("upload_type", "Type")} className="grid grid-cols-2 gap-2">
+            {(["file", "link"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                role="radio"
+                aria-checked={mode === m}
+                onClick={() => setMode(m)}
+                className={`rounded-xl border px-3 py-2 text-sm font-medium ${mode === m ? "border-primary bg-primary/5 text-primary" : "border-border text-foreground hover:bg-muted"}`}
+              >
+                {m === "file" ? t("upload_file", "Upload a file") : t("external_link", "External link")}
+              </button>
+            ))}
+          </div>
+          <TextField label={t("title", "Title")} required value={name} onChange={(e) => setName(e.target.value)} error={errors.title} />
+          <TextAreaField label={t("description", "Description")} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} error={errors.description} />
+          {mode === "file" ? (
+            <TextField
+              label={t("file", "File")}
+              type="file"
+              accept={ACCEPT}
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              error={errors.file}
+              hint={t("supported_files", "PDF, Office, text, images or MP4 — up to 50MB.")}
+            />
+          ) : (
+            <TextField label={t("link_url", "Link")} type="url" placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} error={errors.url} />
           )}
+          {errors.non_field_errors && <p className="text-sm text-destructive">{errors.non_field_errors}</p>}
+        </form>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            {t("cancel", "Cancel")}
+          </Button>
+          <Button type="submit" form="material-form" loading={saving}>
+            {saving ? t("uploading", "Uploading…") : t("upload", "Upload")}
+          </Button>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {materials.map((material) => (
-            <div key={material.id} className="card hover:shadow-md transition-shadow">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {material.url ? (
-                      <LinkIcon className="h-5 w-5 text-primary" />
-                    ) : (
-                      <DocumentIcon className="h-5 w-5 text-primary" />
-                    )}
-                    <h4 className="font-semibold text-foreground">{material.title}</h4>
-                    {getTypeBadge(material.material_type)}
-                  </div>
-                  {material.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{material.description}</p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {t("uploaded_by")}: {material.uploaded_by?.full_name} • {formatDate(material.created_at)}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <a
-                    href={material.url || material.file || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary text-sm px-3 py-1.5 flex items-center gap-1"
-                  >
-                    <EyeIcon className="h-3.5 w-3.5" />
-                    {t("view")}
-                  </a>
-                  {material.file && (
-                    <a
-                      href={material.file}
-                      download
-                      className="btn-outline text-sm px-3 py-1.5 flex items-center gap-1"
-                    >
-                      <DocumentIcon className="h-3.5 w-3.5" />
-                      {t("download")}
-                    </a>
-                  )}
-                  {canUpload && (
-                    <button
-                      onClick={() => handleDelete(material.id)}
-                      className="text-red-500 hover:text-red-700 p-1.5 rounded-lg transition"
-                      title={t("delete")}
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      </Modal>
     </div>
   );
-};
-
-export default MaterialsManager;
+}

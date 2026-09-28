@@ -1,210 +1,112 @@
-import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
-import { BellIcon } from '@heroicons/react/24/outline';
-import { api } from '../../lib/api';
-import { onMessageListener } from '../../lib/firebase';
-import { toast } from 'react-hot-toast';
+import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
+import { BellIcon } from "@heroicons/react/24/outline";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
+import { Link, useNavigate } from "react-router-dom";
+import { notificationApi } from "@/lib/api";
+import { notificationTarget } from "@/lib/notifications";
+import { useNotifications, useUnreadCount } from "@/hooks/queries";
+import type { AppNotification } from "@/types";
+import Spinner from "@/components/ui/Spinner";
 
-import { useTranslation } from 'react-i18next';
-
-export const NotificationBell = ({ iconClassName }: { iconClassName?: string }) => {
+export function NotificationBell() {
   const { t } = useTranslation();
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const location = useLocation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: unread = 0 } = useUnreadCount();
+  const { data, isLoading } = useNotifications(1);
+  const latest = data?.results.slice(0, 6) ?? [];
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  const markRead = useMutation({ mutationFn: notificationApi.markRead, onSuccess: invalidate });
+  const markAll = useMutation({ mutationFn: notificationApi.markAllRead, onSuccess: invalidate });
 
-  // Close when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    // TEMPORARY - Test mock QA notification
-    const mockQA = {
-      id: 999,
-      title: "Test QA Notification",
-      message: "A counselor answered your private question",
-      notification_type: "QA",
-      is_read: false,
-      created_at: new Date().toISOString(),
-    };
-    
-    // Uncomment to test
-    // setNotifications(prev => [mockQA, ...prev]);
-  }, []);
-
-  // Close on navigation
-  useEffect(() => {
-    setIsOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    fetchNotifications();
-
-    // Listen for incoming foreground messages
-    const listenForMessages = async () => {
-      try {
-        const payload: any = await onMessageListener();
-        if (payload && payload.notification) {
-          toast(
-            <div className="flex flex-col gap-1">
-              <span className="font-semibold text-sm">{payload.notification.title}</span>
-              <span className="text-sm">{payload.notification.body}</span>
-            </div>,
-            { duration: 5000, position: 'top-right' }
-          );
-          // Refresh list to update badge
-          fetchNotifications();
-        }
-      } catch (err) {
-        console.error("Foreground message error:", err);
-      }
-    };
-    
-    listenForMessages();
-  }, []);
-
-  const fetchNotifications = async () => {
-    try {
-      const data = await api.getUserNotifications();
-      setNotifications(data);
-    } catch (err) {
-      console.error("Failed to fetch notifications", err);
-    }
-  };
-
-  const markAsRead = async (id: number) => {
-    try {
-      await api.markNotificationRead(id);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    } catch (err) {
-      console.error("Failed to mark as read", err);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      await api.markAllNotificationsRead();
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-    } catch (err) {
-      console.error("Failed to mark all as read", err);
-    }
-  };
-
-  // Navigate based on notification type
-  const handleNotificationClick = (notification: any) => {
-    // Mark as read if not already
-    if (!notification.is_read) {
-      markAsRead(notification.id);
-    }
-    
-    // Handle different notification types
-    if (notification.notification_type === "QA" || notification.notification_type === "qa") {
-      // Navigate to Q&A page with private tab active
-      window.location.href = "/dashboard/questions?tab=private";
-    } else if (notification.notification_type === "EVENT") {
-      // Navigate to events page
-      window.location.href = "/dashboard/events";
-    } else if (notification.notification_type === "DONATION") {
-      // Navigate to donations page
-      window.location.href = "/dashboard/donations";
-    } else {
-      // Default - just close dropdown
-      setIsOpen(false);
-    }
+  const open = (n: AppNotification, close: () => void) => {
+    if (!n.is_read) markRead.mutate(n.id);
+    close();
+    navigate(notificationTarget(n));
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className={iconClassName || "rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground relative"}
+    <Popover className="relative">
+      <PopoverButton
+        className="relative rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+        aria-label={unread ? `${t("notifications")} (${unread})` : t("notifications")}
       >
         <BellIcon className="h-6 w-6" />
-        {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-transparent text-[9px] font-bold text-white items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
+        {unread > 0 && (
+          <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+            {unread > 9 ? "9+" : unread}
           </span>
         )}
-      </button>
+      </PopoverButton>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-50">
-          <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t("notifications")}</h3>
-            {unreadCount > 0 && (
-              <button 
-                onClick={markAllAsRead}
-                className="text-xs text-primary hover:text-primary-light font-medium transition-colors"
-              >
-                {t("mark_all_read")}
-              </button>
-            )}
-          </div>
-          
-          <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-                {t("no_notifications")}
-              </div>
-            ) : (
-              <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                {notifications.map((notification) => (
-                  <li 
-                    key={notification.id} 
-                    onClick={() => handleNotificationClick(notification)}
-                    className={`p-4 transition-colors flex gap-3 cursor-pointer ${!notification.is_read ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}
-                  >
-                    {!notification.is_read && (
-                      <div className="mt-1.5 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                    )}
-                    <div className="flex-1">
-                      <p className={`text-sm ${!notification.is_read ? 'font-semibold text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300'}`}>
-                        {notification.title}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-xs text-gray-400 dark:text-gray-500">
-                          {new Date(notification.created_at).toLocaleDateString()}
+      <PopoverPanel
+        anchor={{ to: "bottom end", gap: 8 }}
+        className="z-50 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-card shadow-elevated"
+      >
+        {({ close }) => (
+          <>
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h3 className="text-sm font-semibold text-foreground">{t("notifications")}</h3>
+              {unread > 0 && (
+                <button
+                  type="button"
+                  onClick={() => markAll.mutate()}
+                  disabled={markAll.isPending}
+                  className="text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                >
+                  {t("mark_all_read")}
+                </button>
+              )}
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              {isLoading ? (
+                <div className="flex justify-center p-6">
+                  <Spinner />
+                </div>
+              ) : latest.length === 0 ? (
+                <p className="p-6 text-center text-sm text-muted-foreground">{t("no_notifications")}</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {latest.map((n) => (
+                    <li key={n.id}>
+                      <button
+                        type="button"
+                        onClick={() => open(n, close)}
+                        className={`flex w-full gap-3 px-4 py-3 text-left hover:bg-muted ${n.is_read ? "" : "bg-primary/5"}`}
+                      >
+                        <span
+                          className={`mt-1.5 h-2 w-2 flex-shrink-0 rounded-full ${n.is_read ? "bg-transparent" : "bg-primary"}`}
+                          aria-hidden="true"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className={`block text-sm ${n.is_read ? "text-foreground/80" : "font-semibold text-foreground"}`}>
+                            {n.title}
+                          </span>
+                          <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">{n.message}</span>
+                          <span className="mt-1 block text-[11px] text-muted-foreground">
+                            {new Date(n.created_at).toLocaleString()}
+                          </span>
                         </span>
-                        {!notification.is_read && (
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation(); // prevent double firing
-                              markAsRead(notification.id);
-                            }}
-                            className="text-xs text-primary hover:text-primary-light font-medium"
-                          >
-                            {t("mark_read")}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <Link
+              to="/dashboard/notifications"
+              onClick={() => close()}
+              className="block border-t border-border px-4 py-2.5 text-center text-sm font-medium text-primary hover:bg-muted"
+            >
+              {t("view_all", "View all")}
+            </Link>
+          </>
+        )}
+      </PopoverPanel>
+    </Popover>
   );
-};
+}
+
+export default NotificationBell;

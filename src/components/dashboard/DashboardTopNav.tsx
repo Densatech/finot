@@ -1,83 +1,85 @@
-import { useState, useEffect, type SyntheticEvent } from "react";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
+import { Bars3Icon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
-import { AuthUser } from "../../types";
-import { FiMenu, FiSettings } from "react-icons/fi";
-import { NotificationBell } from "../notifications/NotificationBell";
+import type { AuthUser } from "@/types";
+import Avatar from "@/components/ui/Avatar";
+import LanguageSelector from "@/components/ui/LanguageSelector";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 type DashboardTopNavProps = {
   user: AuthUser;
   onMenuClick: () => void;
-  notifCount: number;
+  onLogout: () => void;
 };
 
-const DashboardTopNav = ({ user, onMenuClick, notifCount }: DashboardTopNavProps) => {
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const mainEl = document.getElementById("dashboard-main-scroll");
-    if (!mainEl) return;
-    const handleScroll = () => {
-      setScrolled(mainEl.scrollTop > 10);
-    };
-    mainEl.addEventListener("scroll", handleScroll);
-    return () => mainEl.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const fullName = user?.full_name || "";
-  const profile = user?.profile || {} as any;
-  const profileImage = profile?.profile_image || "/images/default-avatar.jpg";
-  const department = profile?.department || "";
-  const batch = profile?.batch || "";
-
-  // Dynamic classes
-  const headerBgClass = scrolled
-    ? "bg-white/80 backdrop-blur-md border-slate-200"
-    : "bg-white border-transparent";
-  
-  const textPrimaryClass = "text-slate-900";
-  const textSecondaryClass = "text-slate-500";
-  const iconButtonClass = "rounded-lg p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 relative";
-  const menuIconButtonClass = "rounded-lg p-2 text-slate-500 transition hover:bg-slate-50 md:hidden";
+export default function DashboardTopNav({ user, onMenuClick, onLogout }: DashboardTopNavProps) {
+  const { t } = useTranslation();
+  const firstName = user.first_name || user.full_name.split(" ")[0];
+  const profile = user.profile;
+  const subtitle = [profile?.department, profile?.batch_year ? `${t("batch", "Batch")} ${profile.batch_year}` : null]
+    .filter(Boolean)
+    .join(" • ");
 
   return (
-    <header className={`sticky top-0 z-30 border-b transition-all duration-300 ${headerBgClass}`}>
-      <div className="flex h-16 items-center justify-between px-4 md:px-6">
-        <div className="flex items-center gap-4">
-          <button onClick={onMenuClick} className={menuIconButtonClass} aria-label="Open menu">
-            <FiMenu className="h-5 w-5" />
+    <header className="sticky top-0 z-30 border-b-2 border-accent bg-card shadow-soft">
+      <div className="flex h-16 items-center justify-between gap-3 px-4 md:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={onMenuClick}
+            className="rounded-lg p-2 text-muted-foreground hover:bg-muted md:hidden"
+            aria-label={t("open_menu", "Open menu")}
+          >
+            <Bars3Icon className="h-6 w-6" />
           </button>
-          <div className="hidden md:block">
-            <h1 className={`text-sm font-medium transition-colors ${textPrimaryClass}`}>Welcome back, {fullName.split(" ")[0]} 👋</h1>
-            <p className={`text-[10px] transition-colors ${textSecondaryClass}`}>{department} {batch && `• ${batch}`}</p>
+          <div className="hidden min-w-0 md:block">
+            <p className="truncate text-sm font-semibold text-primary">
+              {t("welcome_back", "Welcome back")}, {firstName}
+            </p>
+            {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <NotificationBell iconClassName={iconButtonClass} />
-          <Link to="/dashboard/profile" className={`hidden sm:block ${iconButtonClass}`} aria-label="Settings">
-            <FiSettings className="h-5 w-5" />
-          </Link>
-          <div className="relative">
-            <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 rounded-xl p-1 transition hover:bg-slate-50">
-              <img src={profileImage} alt={fullName} className="h-8 w-8 rounded-lg border border-slate-200 object-cover"
-                onError={(event: SyntheticEvent<HTMLImageElement>) => { event.currentTarget.src = "/images/default-avatar.jpg"; }} />
-              <span className={`hidden text-sm font-medium transition-colors md:block ${textPrimaryClass}`}>{fullName.split(" ")[0]}</span>
-            </button>
-            {showUserMenu && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-                <div className="absolute right-0 top-full z-50 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-                  <Link to="/dashboard/profile" className="block rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50" onClick={() => setShowUserMenu(false)}>View Profile</Link>
-                  <Link to="/dashboard/profile/edit" className="block rounded-lg px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50" onClick={() => setShowUserMenu(false)}>Edit Profile</Link>
-                </div>
-              </>
-            )}
-          </div>
+        <div className="flex items-center gap-2">
+          <LanguageSelector />
+          <NotificationBell />
+          <Menu as="div" className="relative">
+            <MenuButton className="flex items-center gap-2 rounded-xl p-1 hover:bg-muted" aria-label={t("account_menu", "Account menu")}>
+              <Avatar src={profile?.profile_image} alt={user.full_name} size="sm" />
+              <span className="hidden max-w-[8rem] truncate text-sm font-medium text-foreground lg:block">{firstName}</span>
+            </MenuButton>
+            <MenuItems
+              anchor={{ to: "bottom end", gap: 8 }}
+              className="z-50 w-52 rounded-xl border border-border bg-card p-1 shadow-elevated focus:outline-none"
+            >
+              <div className="border-b border-border px-3 py-2">
+                <p className="truncate text-sm font-medium text-foreground">{user.full_name}</p>
+                <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+              </div>
+              <MenuItem>
+                <Link to="/dashboard/profile" className="mt-1 block rounded-lg px-3 py-2 text-sm text-foreground data-[focus]:bg-muted">
+                  {t("view_profile", "View profile")}
+                </Link>
+              </MenuItem>
+              <MenuItem>
+                <Link to="/dashboard/profile/edit" className="block rounded-lg px-3 py-2 text-sm text-foreground data-[focus]:bg-muted">
+                  {t("edit_profile", "Edit profile")}
+                </Link>
+              </MenuItem>
+              <MenuItem>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="block w-full rounded-lg px-3 py-2 text-left text-sm text-destructive data-[focus]:bg-destructive/10"
+                >
+                  {t("logout")}
+                </button>
+              </MenuItem>
+            </MenuItems>
+          </Menu>
         </div>
       </div>
     </header>
   );
-};
-
-export default DashboardTopNav;
+}

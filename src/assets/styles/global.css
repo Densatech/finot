@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,7 +5,7 @@
 @layer base {
   :root {
     /* 60-30-10 color scheme: warm, community-focused */
-    --background: 210 33% 98%;        /* #f8fafc - off-white */
+    --background: 222 32% 95%;        /* soft navy-tinted canvas so white cards stand out */
     --foreground: 224 30% 25%;         /* dark navy text */
 
     --card: 0 0% 100%;                 /* pure white cards */
@@ -21,11 +19,11 @@
     --accent-foreground: 224 55% 20%;
     --accent-hover: 52 94% 48%;
 
-    --muted: 210 20% 95%;              /* light gray */
+    --muted: 222 30% 93%;              /* navy-tinted gray */
     --muted-foreground: 215 16% 47%;   /* gray-500 */
 
-    --border: 214 20% 90%;             /* soft border */
-    --input: 214 20% 90%;
+    --border: 222 22% 87%;             /* soft border */
+    --input: 222 22% 85%;
     --ring: 52 94% 54%;                /* amber ring */
 
     --success: 142 71% 45%;
@@ -35,6 +33,27 @@
 
   * {
     box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Respect users who ask for less motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 
   body {
@@ -48,46 +67,74 @@
 
 @layer components {
   .input {
-    @apply w-full bg-background border border-border
-           rounded-xl px-4 py-3 text-foreground
+    @apply w-full bg-card border border-border
+           rounded-xl px-4 py-2.5 text-sm text-foreground
            placeholder:text-muted-foreground
-           focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
-           transition-all duration-200;
+           focus:outline-none focus:ring-2 focus:ring-ring/60 focus:border-primary/40
+           disabled:bg-muted disabled:text-muted-foreground
+           transition-colors duration-150;
   }
 
   .card {
-    @apply bg-card p-6 rounded-2xl shadow-card border border-border;
+    @apply bg-card p-6 rounded-2xl shadow-card border border-border/70;
   }
 
+  /* Card heading with the Finot yellow accent bar */
   .section-title {
-    @apply text-lg font-medium text-foreground mb-4;
+    @apply flex items-center gap-2 text-base font-semibold text-primary;
+  }
+  .section-title::before {
+    content: "";
+    @apply inline-block h-4 w-1 rounded-full bg-accent;
+  }
+
+  /* Navy page header band (dashboard + inner public pages) */
+  .page-hero {
+    @apply relative overflow-hidden rounded-2xl bg-primary px-5 py-6 text-primary-foreground shadow-card sm:px-7 sm:py-7;
+  }
+  .page-hero::after {
+    content: "";
+    @apply pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full border-[18px] border-accent/15;
+  }
+  .page-hero .btn-outline {
+    @apply border-white/60 text-white hover:bg-white/10 hover:text-white;
+  }
+  .page-hero .btn-secondary {
+    @apply bg-white text-primary hover:bg-white/90;
+  }
+
+  /* Segmented tabs */
+  .tabs {
+    @apply inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-card p-1 shadow-soft;
+  }
+  .tab {
+    @apply whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground;
+  }
+  .tab[aria-selected="true"] {
+    @apply bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground;
   }
 
   /* Skeleton loader */
   .skeleton {
-    @apply bg-gradient-to-r from-muted via-background to-muted
-           bg-[length:200%_100%] animate-shimmer rounded-xl;
+    @apply bg-muted animate-pulse rounded-xl;
   }
 
   /* Button variants */
   .btn-primary {
-    @apply bg-accent text-accent-foreground px-6 py-2.5 rounded-xl
-           font-medium hover:bg-accent-hover
-           transition-all duration-200 shadow-soft hover:shadow-card
-           active:scale-[0.98];
+    @apply bg-accent text-accent-foreground inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
+           text-sm font-semibold hover:bg-accent-hover
+           transition-colors duration-150;
   }
 
   .btn-secondary {
-    @apply bg-primary text-primary-foreground px-6 py-2.5 rounded-xl
-           font-medium hover:bg-primary-light
-           transition-all duration-200 shadow-soft hover:shadow-card
-           active:scale-[0.98];
+    @apply bg-primary text-primary-foreground inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
+           text-sm font-semibold hover:bg-primary-light
+           transition-colors duration-150;
   }
 
   .btn-outline {
-    @apply border-2 border-primary text-primary px-6 py-2.5 rounded-xl
-           font-medium hover:bg-primary hover:text-primary-foreground
-           transition-all duration-200
-           active:scale-[0.98];
+    @apply border-2 border-primary text-primary inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
+           text-sm font-semibold hover:bg-primary hover:text-primary-foreground
+           transition-colors duration-150;
   }
 }

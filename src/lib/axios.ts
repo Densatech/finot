@@ -1,87 +1,85 @@
+import axios, { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from "axios";
+import { AUTH_EXPIRED_EVENT, tokens } from "./tokens";
 
-import axios, { InternalAxiosRequestConfig, AxiosHeaders, AxiosResponse } from 'axios';
-import toast from 'react-hot-toast';
-
-// Extend the InternalAxiosRequestConfig interface to include the _retry property
-interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
+interface RetriableConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
-// No base URL – requests will be relative to the current origin
+// In development the Vite proxy forwards /api and /auth, so an empty base URL is fine.
+export const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
+  timeout: 20000,
 });
 
-// Add token to requests
-axiosInstance.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('access_token');
-    
-    // CRITICAL: Ensure headers object exists
-    if (!config.headers) {
-      config.headers = new AxiosHeaders();
-    }
+const REFRESH_PATH = "/auth/jwt/refresh/";
 
-    if (token) {
-       // DIRECT ASSIGNMENT: This is safer than .set() for mixed environments
-       // and works for both plain objects and AxiosHeaders instances.
-       (config.headers as any)['Authorization'] = `JWT ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+axiosInstance.interceptors.request.use((config) => {
+  const token = tokens.getAccess();
+  if (token) {
+    config.headers = AxiosHeaders.from(config.headers);
+    config.headers.set("Authorization", `JWT ${token}`);
+  }
+  return config;
+});
 
-// Response interceptor for 401s (Refresh Logic) and 429s (Rate Limiting)
+// One refresh at a time: parallel 401s all wait for the same promise.
+let refreshPromise: Promise<string> | null = null;
+
+function refreshAccessToken(): Promise<string> {
+  if (!refreshPromise) {
+    const refresh = tokens.getRefresh();
+    refreshPromise = (
+      refresh
+        ? axios
+            .post<{ access: string; refresh?: string }>(`${API_BASE_URL}${REFRESH_PATH}`, { refresh }, { timeout: 15000 })
+            .then(({ data }) => {
+              tokens.set(data.access, data.refresh);
+              return data.access;
+            })
+        : Promise.reject(new Error("No refresh token"))
+    ).finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+function isAuthEndpoint(url?: string) {
+  return !!url && (url.includes("/auth/jwt/") || url.endsWith("/auth/users/"));
+}
+
 axiosInstance.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error) => {
-    const originalRequest = error.config as CustomAxiosRequestConfig;
+  (response) => response,
+  async (error: AxiosError) => {
+    const original = error.config as RetriableConfig | undefined;
 
-    // --- Rate Limiting: 429 Too Many Requests ---
-    if (error.response?.status === 429) {
-      toast.error('You are making too many requests. Please slow down.', {
-        id: 'rate-limit', // Prevent duplicate toasts
-        duration: 4000,
-      });
-      return Promise.reject(error);
-    }
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      const refreshToken = localStorage.getItem('refresh_token');
-
-      if (refreshToken) {
-        try {
-          // Use basic axios to avoid the interceptor loop during refresh
-          const { data } = await axios.post(`${axiosInstance.defaults.baseURL}/auth/jwt/refresh/`, {
-            refresh: refreshToken,
-          });
-
-          localStorage.setItem('access_token', data.access);
-          
-          // Re-attach the new token with the correct prefix - matching request interceptor logic
-          if (originalRequest.headers instanceof AxiosHeaders) {
-              originalRequest.headers.set('Authorization', `JWT ${data.access}`);
-          } else {
-             // Fallback for unlikely case where headers is not an AxiosHeaders instance
-             // However, with our setup above, it should always be. 
-             // We'll create a new headers instance if needed.
-             const newHeaders = new AxiosHeaders(originalRequest.headers);
-             newHeaders.set('Authorization', `JWT ${data.access}`);
-             originalRequest.headers = newHeaders;
-          }
-          
-          return axiosInstance(originalRequest);
-        } catch (refreshError) {
-          localStorage.clear();
-          window.location.href = '/login'; 
-          return Promise.reject(refreshError);
-        }
+    if (
+      error.response?.status === 401 &&
+      original &&
+      !original._retry &&
+      !isAuthEndpoint(original.url) &&
+      (tokens.getRefresh() || tokens.getAccess())
+    ) {
+      original._retry = true;
+      try {
+        const access = await refreshAccessToken();
+        original.headers = AxiosHeaders.from(original.headers);
+        original.headers.set("Authorization", `JWT ${access}`);
+        return axiosInstance(original);
+      } catch {
+        tokens.clear();
+        window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+        // A stale token also breaks public endpoints (DRF rejects invalid tokens even there),
+        // so retry once anonymously; protected endpoints will still answer 401.
+        original.headers = AxiosHeaders.from(original.headers);
+        original.headers.delete("Authorization");
+        return axiosInstance(original);
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default axiosInstance;

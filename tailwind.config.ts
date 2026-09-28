@@ -1,6 +1,8 @@
 import type { Config } from 'tailwindcss'
 
 export default {
+  // The app has a single light theme; "class" stops dark: variants from following the OS setting.
+  darkMode: "class",
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",

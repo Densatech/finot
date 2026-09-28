@@ -1,94 +1,89 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { api } from "../lib/api";
-import { AuthUser } from "../types";
+import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { authApi, type RegisterPayload } from "@/lib/api";
+import { qk } from "@/lib/queryClient";
+import { AUTH_EXPIRED_EVENT, tokens } from "@/lib/tokens";
+import type { AuthUser } from "@/types";
 
-interface AuthContextType {
+interface AuthContextValue {
   user: AuthUser | null;
-  setUser: React.Dispatch<React.SetStateAction<AuthUser | null>>;
+  /** True only while restoring a stored session; public pages never wait on it. */
   loading: boolean;
-  login: (email: string, password: string) => Promise<any>;
-  register: (userData: any) => Promise<any>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<AuthUser>;
+  register: (payload: RegisterPayload) => Promise<AuthUser>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
 
+  const { data: user, isPending, fetchStatus } = useQuery({
+    queryKey: qk.me,
+    queryFn: authApi.me,
+    enabled: tokens.hasSession(),
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+
+  const signOutLocally = useCallback(() => {
+    tokens.clear();
+    queryClient.setQueryData(qk.me, null);
+    queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" });
+  }, [queryClient]);
+
+  // The HTTP layer fires this when a refresh token is rejected.
   useEffect(() => {
-    const initAuth = async () => {
-      const accessToken = localStorage.getItem('access_token');
-      const refreshToken = localStorage.getItem('refresh_token');
+    window.addEventListener(AUTH_EXPIRED_EVENT, signOutLocally);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, signOutLocally);
+  }, [signOutLocally]);
 
-      if (accessToken || refreshToken) {
-        try {
-          const userData = await api.getUser();
-          setUser(userData);
-          
-          // Request and register Firebase token
-          setTimeout(async () => {
-             try {
-                const { requestNotificationPermission } = await import('../lib/firebase');
-                const token = await requestNotificationPermission();
-                if (token) {
-                   await api.registerDeviceToken(token);
-                   console.log("FCM Token registered with backend.");
-                }
-             } catch (err) {
-                console.error("Firebase token registration failed:", err);
-             }
-          }, 1000); // Small delay to prioritize rendering
+  const loadUser = useCallback(async () => {
+    const me = await queryClient.fetchQuery({ queryKey: qk.me, queryFn: authApi.me, staleTime: 0 });
+    return me;
+  }, [queryClient]);
 
-        } catch (error) {
-          console.error("Failed to restore session:", error);
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          setUser(null);
-        }
-      }
-      setLoading(false);
-    };
-
-    initAuth();
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    const response = await api.login(email, password);
-    setUser(response.user);
-    return response;
-  };
-
-  const register = async (userData: any) => {
-    const response = await api.register(userData);
-    setUser(response.user);
-    return response;
-  };
-
-  const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    setUser(null);
-    window.location.reload();
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout }}>
-      {!loading ? children : (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-          <div className="text-center">
-            <div className="h-12 w-12 mx-auto mb-4 animate-spin rounded-full border-[3px] border-muted border-t-primary" />
-            <p className="text-muted-foreground text-sm">Loading...</p>
-          </div>
-        </div>
-      )}
-    </AuthContext.Provider>
+  const login = useCallback(
+    async (email: string, password: string) => {
+      await authApi.login(email, password);
+      return loadUser();
+    },
+    [loadUser],
   );
-};
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
-};
+  const register = useCallback(
+    async (payload: RegisterPayload) => {
+      await authApi.register(payload);
+      await authApi.login(payload.email, payload.password);
+      return loadUser();
+    },
+    [loadUser],
+  );
+
+  const logout = useCallback(async () => {
+    await authApi.logout();
+    signOutLocally();
+  }, [signOutLocally]);
+
+  const refreshUser = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: qk.me });
+  }, [queryClient]);
+
+  // A disabled query is "pending" forever; only a running fetch means we're restoring a session.
+  const loading = isPending && fetchStatus === "fetching";
+
+  const value = useMemo<AuthContextValue>(
+    () => ({ user: user ?? null, loading, login, register, logout, refreshUser }),
+    [user, loading, login, register, logout, refreshUser],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}

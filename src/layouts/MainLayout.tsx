@@ -1,20 +1,16 @@
-import { Outlet, useLocation } from "react-router-dom";
-import Navbar from "../components/navigation/Navbar";
-import Footer from "../components/navigation/Footer";
+import { Outlet } from "react-router-dom";
+import Navbar from "@/components/navigation/Navbar";
+import Footer from "@/components/navigation/Footer";
 
-export default function Layout() {
-  const location = useLocation();
-  const isHome = location.pathname === "/";
-
+/** Public pages share one navbar and footer. */
+export default function MainLayout() {
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {isHome && <Navbar />}
-
+    <div className="flex min-h-screen flex-col bg-background">
+      <Navbar />
       <main className="flex-grow">
         <Outlet />
       </main>
-
-      {isHome && <Footer />}
+      <Footer />
     </div>
   );
 }

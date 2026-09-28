@@ -1,117 +1,73 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { UserGroupIcon, CalendarIcon, UsersIcon, FolderIcon } from "@heroicons/react/24/outline";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "../../context/AuthContext";
-import { api } from "../../lib/api";
+import { CalendarDaysIcon, FolderIcon, UserGroupIcon, UsersIcon } from "@heroicons/react/24/outline";
+import { useManagedGroup } from "@/hooks/queries";
+import { Card, SectionHeader } from "@/components/ui/Card";
+import EmptyState from "@/components/ui/EmptyState";
+import QueryState from "@/components/ui/QueryState";
 import GroupEventsManager from "./components/GroupEventsManager";
 import GroupAttendanceManager from "./components/GroupAttendanceManager";
 import MaterialsManager from "./components/MaterialsManager";
 
+type Tab = "events" | "attendance" | "materials";
+
 export default function ManageAgeglotDashboard() {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"events" | "attendance" | "materials">("events");
-  const [group, setGroup] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: group, isLoading, error, refetch } = useManagedGroup();
+  const [tab, setTab] = useState<Tab>("events");
 
-  useEffect(() => {
-    const fetchGroupData = async () => {
-      try {
-        const adminGroup = await api.getMyManagedGroup();
-        setGroup(adminGroup);
-      } catch (error) {
-        console.error("Failed to fetch group data", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (user) fetchGroupData();
-  }, [user]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-muted border-t-primary" />
-        <span className="ml-3 text-sm text-muted-foreground">{t("loading")}...</span>
-      </div>
-    );
-  }
-
-  if (!group) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center p-6 text-center">
-        <UserGroupIcon className="mb-4 h-16 w-16 text-muted-foreground" />
-        <h2 className="text-2xl font-bold text-foreground">{t("no_group_assigned")}</h2>
-        <p className="mt-2 max-w-md text-muted-foreground">{t("no_group_assigned_msg")}</p>
-      </div>
-    );
-  }
+  const tabs: { id: Tab; label: string; icon: typeof CalendarDaysIcon }[] = [
+    { id: "events", label: t("events", "Events"), icon: CalendarDaysIcon },
+    { id: "attendance", label: t("attendance", "Attendance"), icon: UsersIcon },
+    { id: "materials", label: t("materials", "Materials"), icon: FolderIcon },
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("manage_group", { name: group.name })}</h1>
-          <p className="text-muted-foreground">{group.description}</p>
-        </div>
-        
-        {/* Tabs */}
-        <div className="flex space-x-2 rounded-xl bg-card p-1 shadow-sm border border-border">
-          <button
-            onClick={() => setActiveTab("events")}
-            className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "events"
-                ? "bg-primary text-primary-foreground shadow"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            <CalendarIcon className="h-4 w-4" />
-            <span>{t("events")}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("attendance")}
-            className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "attendance"
-                ? "bg-primary text-primary-foreground shadow"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            <UsersIcon className="h-4 w-4" />
-            <span>{t("attendance")}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("materials")}
-            className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === "materials"
-                ? "bg-primary text-primary-foreground shadow"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            <FolderIcon className="h-4 w-4" />
-            <span>{t("materials")}</span>
-          </button>
-        </div>
-      </div>
-
-      <motion.div
-        key={activeTab}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="min-h-[500px]"
-      >
-        {activeTab === "events" && <GroupEventsManager groupId={group.id} eventType="group" />}
-        {activeTab === "attendance" && <GroupAttendanceManager groupId={group.id} />}
-        {activeTab === "materials" && (
-          <MaterialsManager
-            materialType="SERVICE"
-            serviceGroupId={group.id}
-            title={t("group_materials")}
-            subtitle={t("group_materials_description")}
+    <QueryState
+      isLoading={isLoading}
+      error={error}
+      onRetry={refetch}
+      isEmpty={!group}
+      empty={
+        <Card>
+          <EmptyState
+            icon={<UserGroupIcon className="h-8 w-8" />}
+            title={t("no_group_assigned", "No group assigned")}
+            description={t("no_group_assigned_msg", "Ask a super admin to make you the admin of a service group.")}
           />
-        )}
-      </motion.div>
-    </div>
+        </Card>
+      }
+    >
+      {group && (
+        <div className="space-y-6">
+          <SectionHeader title={t("manage_group", { name: group.name, defaultValue: `Manage ${group.name}` })} description={group.description ?? undefined} />
+          <div role="tablist" className="tabs">
+            {tabs.map((tb) => (
+              <button
+                key={tb.id}
+                role="tab"
+                type="button"
+                aria-selected={tab === tb.id}
+                onClick={() => setTab(tb.id)}
+                className="tab inline-flex items-center gap-2"
+              >
+                <tb.icon className="h-4 w-4" aria-hidden="true" />
+                {tb.label}
+              </button>
+            ))}
+          </div>
+          {tab === "events" && <GroupEventsManager eventType="group" groupId={group.id} />}
+          {tab === "attendance" && <GroupAttendanceManager groupId={group.id} />}
+          {tab === "materials" && (
+            <MaterialsManager
+              materialType="SERVICE"
+              serviceGroupId={group.id}
+              title={t("group_materials", "Group materials")}
+              subtitle={t("group_materials_description")}
+            />
+          )}
+        </div>
+      )}
+    </QueryState>
   );
 }

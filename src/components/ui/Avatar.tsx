@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from "react";
+import { useState } from "react";
 
 type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -7,106 +7,36 @@ type AvatarProps = {
   alt: string;
   size?: AvatarSize;
   className?: string;
-  fallback?: string;
 };
 
 const sizeStyles: Record<AvatarSize, string> = {
-  xs: "h-6 w-6 text-xs",
-  sm: "h-8 w-8 text-sm",
-  md: "h-10 w-10 text-base",
-  lg: "h-12 w-12 text-lg",
-  xl: "h-16 w-16 text-xl",
+  xs: "h-6 w-6 text-[10px]",
+  sm: "h-8 w-8 text-xs",
+  md: "h-10 w-10 text-sm",
+  lg: "h-14 w-14 text-base",
+  xl: "h-20 w-20 text-xl",
 };
 
-export const Avatar = ({
-  src,
-  alt,
-  size = "md",
-  className = "",
-  fallback,
-}: AvatarProps) => {
-  const [imageError, setImageError] = useState(false);
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(" ");
-    if (parts.length === 1) return parts[0][0]?.toUpperCase() || "?";
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  };
-
-  const handleError = (e: SyntheticEvent<HTMLImageElement>) => {
-    setImageError(true);
-    e.currentTarget.src = "/images/default-avatar.jpg";
-  };
-
-  const initials = fallback || getInitials(alt);
-
+/** Profile photo with an initials fallback (no external default image needed). */
+export const Avatar = ({ src, alt, size = "md", className = "" }: AvatarProps) => {
+  const [failed, setFailed] = useState(false);
   return (
-    <div
-      className={`
-        relative inline-flex items-center justify-center
-        rounded-full border-2 border-accent/30 bg-gradient-to-br from-primary/20 to-accent/20
-        font-semibold text-primary
-        ${sizeStyles[size]}
-        ${className}
-      `}
+    <span
+      className={`relative inline-flex flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 font-semibold text-primary ${sizeStyles[size]} ${className}`}
     >
-      {src && !imageError ? (
-        <img
-          src={src}
-          alt={alt}
-          className="h-full w-full rounded-full object-cover"
-          onError={handleError}
-        />
+      {src && !failed ? (
+        <img src={src} alt={alt} className="h-full w-full object-cover" onError={() => setFailed(true)} loading="lazy" />
       ) : (
-        <span>{initials}</span>
+        <span aria-label={alt}>{initials(alt)}</span>
       )}
-    </div>
-  );
-};
-
-type AvatarGroupProps = {
-  avatars: Array<{
-    src?: string | null;
-    alt: string;
-  }>;
-  max?: number;
-  size?: AvatarSize;
-  className?: string;
-};
-
-export const AvatarGroup = ({
-  avatars,
-  max = 5,
-  size = "md",
-  className = "",
-}: AvatarGroupProps) => {
-  const displayedAvatars = avatars.slice(0, max);
-  const remaining = avatars.length - max;
-
-  return (
-    <div className={`flex -space-x-2 ${className}`}>
-      {displayedAvatars.map((avatar, index) => (
-        <div
-          key={index}
-          className="ring-2 ring-card"
-          style={{ zIndex: displayedAvatars.length - index }}
-        >
-          <Avatar src={avatar.src} alt={avatar.alt} size={size} />
-        </div>
-      ))}
-      {remaining > 0 && (
-        <div
-          className={`
-            flex items-center justify-center rounded-full
-            border-2 border-card bg-muted font-semibold text-muted-foreground
-            ring-2 ring-card
-            ${sizeStyles[size]}
-          `}
-        >
-          +{remaining}
-        </div>
-      )}
-    </div>
+    </span>
   );
 };
 
