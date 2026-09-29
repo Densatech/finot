@@ -150,6 +150,7 @@ export default function MaterialsManager({ materialType, courseId, serviceGroupI
           <TextAreaField label={t("description", "Description")} rows={2} value={description} onChange={(e) => setDescription(e.target.value)} error={errors.description} />
           {mode === "file" ? (
             <TextField
+              key="file"
               label={t("file", "File")}
               type="file"
               accept={ACCEPT}
@@ -158,7 +159,7 @@ export default function MaterialsManager({ materialType, courseId, serviceGroupI
               hint={t("supported_files", "PDF, Office, text, images or MP4 — up to 50MB.")}
             />
           ) : (
-            <TextField label={t("link_url", "Link")} type="url" placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} error={errors.url} />
+            <TextField key="link" label={t("link_url", "Link")} type="url" placeholder="https://" value={url} onChange={(e) => setUrl(e.target.value)} error={errors.url} />
           )}
           {errors.non_field_errors && <p className="text-sm text-destructive">{errors.non_field_errors}</p>}
         </form>

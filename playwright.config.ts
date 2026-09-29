@@ -8,7 +8,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // End-to-end tests run the real Django backend (fresh SQLite DB + seed_e2e) and the Vite dev server.
 const backendDir = path.resolve(here, "../backend");
 const db = path.resolve(here, "e2e/.tmp/e2e.sqlite3");
-const backendEnv = `DATABASE_URL=sqlite:///${db} FRONTEND_URL=http://localhost:5177 E2E_RELAX_THROTTLES=1 CHAPA_SECRET_KEY=CHASECK_TEST-e2e`;
+const media = path.resolve(here, "e2e/.tmp/media");
+const backendEnv = `E2E_LOCAL_MEDIA=${media} DATABASE_URL=sqlite:///${db} FRONTEND_URL=http://localhost:5177 E2E_RELAX_THROTTLES=1 CHAPA_SECRET_KEY=CHASECK_TEST-e2e`;
 
 export default defineConfig({
   testDir: "./e2e",

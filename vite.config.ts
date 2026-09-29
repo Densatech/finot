@@ -22,6 +22,7 @@ export default defineConfig(({ mode, command }) => {
       proxy: {
         "/auth": { target: proxyTarget, changeOrigin: true },
         "/api": { target: proxyTarget, changeOrigin: true },
+        "/media": { target: proxyTarget, changeOrigin: true },
       },
     },
     build: {
